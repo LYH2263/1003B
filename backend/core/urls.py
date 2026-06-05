@@ -11,6 +11,7 @@ urlpatterns = [
     path('notifications/', include('apps.notifications.urls')),
     path('seats/', include('apps.seats.urls')),
     path('donations/', include('apps.donations.urls')),
+    path('knowledge-graph/', include('apps.knowledge_graph.urls')),
 ]
 
 if settings.DEBUG:
