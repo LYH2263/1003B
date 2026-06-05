@@ -9,6 +9,7 @@ urlpatterns = [
     path('users/', include('apps.users.urls')),
     path('recommendations/', include('apps.recommendations.urls')),
     path('notifications/', include('apps.notifications.urls')),
+    path('seats/', include('apps.seats.urls')),
 ]
 
 if settings.DEBUG:

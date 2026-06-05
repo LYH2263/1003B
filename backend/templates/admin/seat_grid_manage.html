@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}座位布局管理 - 图书借阅管理系统{% endblock %}
+
+{% block page_title %}座位布局管理{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'reading_room_manage' %}" class="text-primary hover:text-primary/80 transition-colors flex items-center">
+        <i class="fas fa-arrow-left mr-2"></i>
+        返回阅览室列表
+    </a>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-xl font-semibold text-slate-800">{{ room.name }}</h3>
+            <p class="text-slate-500 mt-1">
+                <i class="fas fa-clock mr-1"></i>
+                开放时间：{{ room.open_time|time:"H:i" }} - {{ room.close_time|time:"H:i" }}
+                <span class="mx-3">|</span>
+                <i class="fas fa-th mr-1"></i>
+                布局：{{ room.rows }} 行 × {{ room.cols }} 列
+            </p>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <span class="w-4 h-4 rounded bg-green-500"></span>
+                <span class="text-sm text-slate-600">可用</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="w-4 h-4 rounded bg-slate-400"></span>
+                <span class="text-sm text-slate-600">不可用</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm p-6">
+    <div class="mb-4 text-center text-slate-500 text-sm">
+        <i class="fas fa-door-open mr-2"></i>讲台/入口
+    </div>
+    
+    <div class="flex justify-center">
+        <div id="seatGrid" class="inline-grid gap-3" style="grid-template-columns: repeat({{ room.cols }}, minmax(0, 1fr));">
+            {% for row in seat_grid %}
+                {% for seat in row %}
+                    {% if seat %}
+                    <button 
+                        onclick="toggleSeat({{ seat.id }}, this)"
+                        class="seat-btn w-12 h-12 rounded-lg flex items-center justify-center text-xs font-medium transition-all duration-200 {% if seat.is_available %}bg-green-500 text-white hover:bg-green-600{% else %}bg-slate-400 text-white hover:bg-slate-500{% endif %}"
+                        data-seat-id="{{ seat.id }}"
+                        data-available="{{ seat.is_available|lower }}"
+                        title="{{ seat.seat_number }} - 点击切换状态"
+                    >
+                        {{ seat.col }}
+                    </button>
+                    {% else %}
+                    <div class="w-12 h-12"></div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="mt-6 pt-6 border-t border-slate-100">
+        <div class="flex items-center justify-center space-x-8 text-sm text-slate-500">
+            <div>
+                <span class="font-medium text-slate-700" id="availableCount">{{ seat_grid.0.0.reading_room.seat_set.count }}</span>
+                 / {{ room.total_seats }} 个座位可用
+            </div>
+            <div>点击座位可切换可用/不可用状态</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSeat(seatId, btn) {
+    const formData = new FormData();
+    formData.append('seat_id', seatId);
+    formData.append('action', 'toggle');
+    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.is_available) {
+                btn.classList.remove('bg-slate-400', 'hover:bg-slate-500');
+                btn.classList.add('bg-green-500', 'hover:bg-green-600');
+                btn.setAttribute('data-available', 'true');
+            } else {
+                btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                btn.classList.add('bg-slate-400', 'hover:bg-slate-500');
+                btn.setAttribute('data-available', 'false');
+            }
+            updateCounts();
+        }
+    });
+}
+
+function updateCounts() {
+    const available = document.querySelectorAll('.seat-btn[data-available="true"]').length;
+    document.getElementById('availableCount').textContent = available;
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

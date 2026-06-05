@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block title %}座位预约 - 图书借阅管理系统{% endblock %}
+
+{% block page_title %}座位预约{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">选择阅览室</label>
+            <select id="roomSelect" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+                {% for room in rooms %}
+                <option value="{{ room.id }}" {% if selected_room and room.id == selected_room.id %}selected{% endif %}>{{ room.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">预约日期</label>
+            <input type="date" id="dateSelect" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">时间段</label>
+            <select id="timeSlotSelect" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+                <option value="morning">上午 (8:00-12:00)</option>
+                <option value="afternoon">下午 (12:00-18:00)</option>
+                <option value="evening">晚上 (18:00-22:00)</option>
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button onclick="refreshSeats()" class="w-full px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center">
+                <i class="fas fa-sync-alt mr-2"></i>
+                刷新座位
+            </button>
+        </div>
+    </div>
+    
+    <div class="mt-6 flex items-center justify-center space-x-8">
+        <div class="flex items-center space-x-2">
+            <span class="w-6 h-6 rounded bg-green-500"></span>
+            <span class="text-sm text-slate-600">可预约</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="w-6 h-6 rounded bg-red-500"></span>
+            <span class="text-sm text-slate-600">已占用</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="w-6 h-6 rounded bg-slate-400"></span>
+            <span class="text-sm text-slate-600">不可用</span>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm p-6">
+    <div class="mb-4 text-center text-slate-500 text-sm">
+        <i class="fas fa-door-open mr-2"></i>讲台/入口
+    </div>
+    
+    <div class="flex justify-center">
+        <div id="seatGrid" class="inline-grid gap-3">
+            <div class="col-span-full text-center py-8 text-slate-400">
+                <i class="fas fa-spinner fa-spin text-2xl mr-2"></i>
+                加载座位信息...
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-6 pt-6 border-t border-slate-100">
+        <div class="flex items-center justify-center space-x-8 text-sm text-slate-500">
+            <div>
+                <span class="font-medium text-slate-700" id="availableCount">0</span> 个可预约
+            </div>
+            <div>
+                <span class="font-medium text-slate-700" id="occupiedCount">0</span> 个已占用
+            </div>
+            <div>点击绿色座位可进行预约</div>
+        </div>
+    </div>
+</div>
+
+<div id="reservationModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div class="p-6 border-b border-slate-100">
+            <h3 class="text-xl font-semibold text-slate-800">确认预约</h3>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="bg-slate-50 rounded-xl p-4 space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-slate-600">座位编号</span>
+                    <span class="font-medium text-slate-800" id="modalSeatNumber"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">预约日期</span>
+                    <span class="font-medium text-slate-800" id="modalDate"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">时间段</span>
+                    <span class="font-medium text-slate-800" id="modalTimeSlot"></span>
+                </div>
+            </div>
+            <p class="text-sm text-slate-500">
+                <i class="fas fa-info-circle mr-1 text-primary"></i>
+                同一用户同一天同一时间段只能预约一个座位
+            </p>
+        </div>
+        <div class="p-6 border-t border-slate-100 flex justify-end space-x-3">
+            <button onclick="closeReservationModal()" class="px-6 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors">取消</button>
+            <button onclick="confirmReservation()" class="px-6 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors">确认预约</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedSeatId = null;
+let selectedSeatNumber = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dateSelect').value = today;
+    document.getElementById('dateSelect').min = today;
+    
+    loadSeats();
+    
+    document.getElementById('roomSelect').addEventListener('change', loadSeats);
+    document.getElementById('dateSelect').addEventListener('change', loadSeats);
+    document.getElementById('timeSlotSelect').addEventListener('change', loadSeats);
+});
+
+function refreshSeats() {
+    loadSeats();
+}
+
+function loadSeats() {
+    const roomId = document.getElementById('roomSelect').value;
+    const date = document.getElementById('dateSelect').value;
+    const timeSlot = document.getElementById('timeSlotSelect').value;
+    
+    if (!roomId) return;
+    
+    const grid = document.getElementById('seatGrid');
+    grid.innerHTML = `
+        <div class="col-span-full text-center py-8 text-slate-400">
+            <i class="fas fa-spinner fa-spin text-2xl mr-2"></i>
+            加载座位信息...
+        </div>
+    `;
+    
+    fetch(`/seats/api/seat-status/?room_id=${roomId}&date=${date}&time_slot=${timeSlot}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderSeats(data);
+            }
+        });
+}
+
+function renderSeats(data) {
+    const grid = document.getElementById('seatGrid');
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `repeat(${data.cols}, minmax(0, 1fr))`;
+    
+    let available = 0;
+    let occupied = 0;
+    
+    for (let row = 1; row <= data.rows; row++) {
+        for (let col = 1; col <= data.cols; col++) {
+            const seat = data.seats.find(s => s.row === row && s.col === col);
+            
+            if (seat) {
+                const btn = document.createElement('button');
+                btn.className = 'w-12 h-12 rounded-lg flex items-center justify-center text-xs font-medium transition-all duration-200 cursor-pointer';
+                btn.textContent = seat.col;
+                btn.title = seat.seat_number;
+                
+                switch (seat.status) {
+                    case 'available':
+                        btn.classList.add('bg-green-500', 'text-white', 'hover:bg-green-600', 'hover:scale-110');
+                        btn.onclick = () => openReservationModal(seat.id, seat.seat_number);
+                        available++;
+                        break;
+                    case 'occupied':
+                        btn.classList.add('bg-red-500', 'text-white', 'cursor-not-allowed');
+                        btn.title += ` - 被 ${seat.reserved_by} 预约`;
+                        occupied++;
+                        break;
+                    case 'unavailable':
+                        btn.classList.add('bg-slate-400', 'text-white', 'cursor-not-allowed');
+                        btn.title += ' - 座位不可用';
+                        break;
+                }
+                
+                grid.appendChild(btn);
+            } else {
+                const div = document.createElement('div');
+                div.className = 'w-12 h-12';
+                grid.appendChild(div);
+            }
+        }
+    }
+    
+    document.getElementById('availableCount').textContent = available;
+    document.getElementById('occupiedCount').textContent = occupied;
+}
+
+function openReservationModal(seatId, seatNumber) {
+    selectedSeatId = seatId;
+    selectedSeatNumber = seatNumber;
+    
+    const date = document.getElementById('dateSelect').value;
+    const timeSlot = document.getElementById('timeSlotSelect');
+    const timeSlotText = timeSlot.options[timeSlot.selectedIndex].text;
+    
+    document.getElementById('modalSeatNumber').textContent = seatNumber;
+    document.getElementById('modalDate').textContent = date;
+    document.getElementById('modalTimeSlot').textContent = timeSlotText;
+    
+    document.getElementById('reservationModal').classList.remove('hidden');
+    document.getElementById('reservationModal').classList.add('flex');
+}
+
+function closeReservationModal() {
+    document.getElementById('reservationModal').classList.add('hidden');
+    document.getElementById('reservationModal').classList.remove('flex');
+    selectedSeatId = null;
+    selectedSeatNumber = null;
+}
+
+function confirmReservation() {
+    if (!selectedSeatId) return;
+    
+    const date = document.getElementById('dateSelect').value;
+    const timeSlot = document.getElementById('timeSlotSelect').value;
+    
+    const formData = new FormData();
+    formData.append('seat_id', selectedSeatId);
+    formData.append('date', date);
+    formData.append('time_slot', timeSlot);
+    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+    
+    fetch('/seats/api/create-reservation/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        closeReservationModal();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            loadSeats();
+        } else {
+            showToast(data.error, 'error');
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `p-4 rounded-xl shadow-lg flex items-center ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
+    toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+        ${message}
+    `;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

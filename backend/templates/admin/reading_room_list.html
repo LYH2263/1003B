@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}阅览室管理 - 图书借阅管理系统{% endblock %}
+
+{% block page_title %}阅览室管理{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <h3 class="text-lg font-semibold text-slate-800">阅览室列表</h3>
+    <button onclick="openCreateModal()" class="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors flex items-center">
+        <i class="fas fa-plus mr-2"></i>
+        新增阅览室
+    </button>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-slate-50">
+            <tr>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-slate-600">阅览室名称</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-slate-600">开放时间</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-slate-600">座位布局</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-slate-600">状态</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-slate-600">操作</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {% for room in rooms %}
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4">
+                    <div class="font-medium text-slate-900">{{ room.name }}</div>
+                    {% if room.description %}
+                    <div class="text-sm text-slate-500 mt-1">{{ room.description }}</div>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 text-center text-slate-600">
+                    {{ room.open_time|time:"H:i" }} - {{ room.close_time|time:"H:i" }}
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm">
+                        {{ room.rows }} × {{ room.cols }} = {{ room.total_seats }} 座
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    {% if room.is_active %}
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">启用中</span>
+                    {% else %}
+                    <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm">已禁用</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 text-center space-x-2">
+                    <a href="{% url 'seat_grid_manage' room.id %}" class="inline-block px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-th mr-1"></i>座位布局
+                    </a>
+                    <button onclick="openEditModal({{ room.id }}, '{{ room.name|escapejs }}', '{{ room.open_time|time:"H:i" }}', '{{ room.close_time|time:"H:i" }}', {{ room.rows }}, {{ room.cols }}, '{{ room.description|escapejs }}', {{ room.is_active|lower }})" class="px-3 py-1 text-sm bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors">
+                        <i class="fas fa-edit mr-1"></i>编辑
+                    </button>
+                    <button onclick="confirmDelete({{ room.id }}, '{{ room.name|escapejs }}')" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                        <i class="fas fa-trash mr-1"></i>删除
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                    <i class="fas fa-building text-4xl mb-4 block"></i>
+                    暂无阅览室，请点击上方按钮添加
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div id="roomModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+        <div class="p-6 border-b border-slate-100">
+            <h3 id="modalTitle" class="text-xl font-semibold text-slate-800">新增阅览室</h3>
+        </div>
+        <form method="POST" class="p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" id="formAction" name="action" value="create">
+            <input type="hidden" id="roomId" name="room_id">
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">阅览室名称</label>
+                <input type="text" id="roomName" name="name" required class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="请输入阅览室名称">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">开放时间</label>
+                    <input type="time" id="openTime" name="open_time" required class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" value="08:00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">关闭时间</label>
+                    <input type="time" id="closeTime" name="close_time" required class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" value="22:00">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">行数</label>
+                    <input type="number" id="rows" name="rows" min="1" max="20" required class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" value="5">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">列数</label>
+                    <input type="number" id="cols" name="cols" min="1" max="20" required class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" value="8">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">描述</label>
+                <textarea id="description" name="description" rows="2" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none" placeholder="可选描述信息"></textarea>
+            </div>
+            
+            <div id="isActiveWrapper" class="hidden">
+                <label class="flex items-center">
+                    <input type="checkbox" id="isActive" name="is_active" class="w-4 h-4 text-primary focus:ring-primary border-slate-300 rounded">
+                    <span class="ml-2 text-sm text-slate-700">启用该阅览室</span>
+                </label>
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" onclick="closeModal()" class="px-6 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors">取消</button>
+                <button type="submit" class="px-6 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <div class="text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+                <i class="fas fa-exclamation-triangle text-2xl text-red-500"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-slate-800 mb-2">确认删除</h3>
+            <p class="text-slate-600 mb-6">确定要删除阅览室「<span id="deleteRoomName"></span>」吗？此操作不可恢复。</p>
+            <form method="POST" class="flex justify-center space-x-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" id="deleteRoomId" name="room_id">
+                <button type="button" onclick="closeDeleteModal()" class="px-6 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors">取消</button>
+                <button type="submit" class="px-6 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors">确认删除</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openCreateModal() {
+    document.getElementById('modalTitle').textContent = '新增阅览室';
+    document.getElementById('formAction').value = 'create';
+    document.getElementById('roomId').value = '';
+    document.getElementById('roomName').value = '';
+    document.getElementById('openTime').value = '08:00';
+    document.getElementById('closeTime').value = '22:00';
+    document.getElementById('rows').value = '5';
+    document.getElementById('cols').value = '8';
+    document.getElementById('description').value = '';
+    document.getElementById('isActiveWrapper').classList.add('hidden');
+    document.getElementById('isActive').checked = true;
+    
+    document.getElementById('roomModal').classList.remove('hidden');
+    document.getElementById('roomModal').classList.add('flex');
+}
+
+function openEditModal(id, name, openTime, closeTime, rows, cols, description, isActive) {
+    document.getElementById('modalTitle').textContent = '编辑阅览室';
+    document.getElementById('formAction').value = 'edit';
+    document.getElementById('roomId').value = id;
+    document.getElementById('roomName').value = name;
+    document.getElementById('openTime').value = openTime;
+    document.getElementById('closeTime').value = closeTime;
+    document.getElementById('rows').value = rows;
+    document.getElementById('cols').value = cols;
+    document.getElementById('description').value = description;
+    document.getElementById('isActiveWrapper').classList.remove('hidden');
+    document.getElementById('isActive').checked = isActive;
+    
+    document.getElementById('roomModal').classList.remove('hidden');
+    document.getElementById('roomModal').classList.add('flex');
+}
+
+function closeModal() {
+    document.getElementById('roomModal').classList.add('hidden');
+    document.getElementById('roomModal').classList.remove('flex');
+}
+
+function confirmDelete(id, name) {
+    document.getElementById('deleteRoomId').value = id;
+    document.getElementById('deleteRoomName').textContent = name;
+    document.getElementById('deleteModal').classList.remove('hidden');
+    document.getElementById('deleteModal').classList.add('flex');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    document.getElementById('deleteModal').classList.remove('flex');
+}
+</script>
+{% endblock %}

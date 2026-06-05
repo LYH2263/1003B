@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.books.apps.BooksConfig',
     'apps.recommendations.apps.RecommendationsConfig',
     'apps.notifications.apps.NotificationsConfig',
+    'apps.seats.apps.SeatsConfig',
 ]
 
 MIDDLEWARE = [

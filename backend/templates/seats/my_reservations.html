@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}我的预约 - 图书借阅管理系统{% endblock %}
+
+{% block page_title %}我的预约{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-slate-100">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-slate-800">预约记录</h3>
+            <a href="{% url 'seat_reservation' %}" class="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors flex items-center">
+                <i class="fas fa-plus mr-2"></i>
+                新建预约
+            </a>
+        </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-slate-600">阅览室</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-slate-600">座位号</th>
+                    <th class="px-6 py-4 text-center text-sm font-semibold text-slate-600">预约日期</th>
+                    <th class="px-6 py-4 text-center text-sm font-semibold text-slate-600">时间段</th>
+                    <th class="px-6 py-4 text-center text-sm font-semibold text-slate-600">状态</th>
+                    <th class="px-6 py-4 text-center text-sm font-semibold text-slate-600">预约时间</th>
+                    <th class="px-6 py-4 text-center text-sm font-semibold text-slate-600">操作</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for reservation in reservations %}
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-slate-900">{{ reservation.seat.reading_room.name }}</div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-600">{{ reservation.seat.seat_number }}</td>
+                    <td class="px-6 py-4 text-center text-slate-600">{{ reservation.reservation_date|date:"Y-m-d" }}</td>
+                    <td class="px-6 py-4 text-center text-slate-600">{{ reservation.get_time_slot_display }}</td>
+                    <td class="px-6 py-4 text-center">
+                        {% if reservation.status == 'pending' %}
+                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">待使用</span>
+                        {% elif reservation.status == 'checked_in' %}
+                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">已签到</span>
+                        {% elif reservation.status == 'completed' %}
+                        <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm">已完成</span>
+                        {% elif reservation.status == 'cancelled' %}
+                        <span class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm">已取消</span>
+                        {% elif reservation.status == 'no_show' %}
+                        <span class="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-sm">未到</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center text-slate-500 text-sm">{{ reservation.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="px-6 py-4 text-center">
+                        {% if reservation.id in can_cancel %}
+                        <button onclick="cancelReservation({{ reservation.id }})" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                            <i class="fas fa-times mr-1"></i>取消预约
+                        </button>
+                        {% else %}
+                        <span class="text-slate-400 text-sm">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                        <i class="fas fa-calendar-alt text-4xl mb-4 block"></i>
+                        暂无预约记录
+                        <div class="mt-4">
+                            <a href="{% url 'seat_reservation' %}" class="text-primary hover:text-primary/80 transition-colors">
+                                <i class="fas fa-arrow-right mr-1"></i>去预约座位
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="cancelModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <div class="text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+                <i class="fas fa-question text-2xl text-amber-500"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-slate-800 mb-2">确认取消</h3>
+            <p class="text-slate-600 mb-6">确定要取消这个预约吗？</p>
+            <div class="flex justify-center space-x-3">
+                <button onclick="closeCancelModal()" class="px-6 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors">返回</button>
+                <button onclick="confirmCancel()" class="px-6 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors">确认取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let cancelReservationId = null;
+
+function cancelReservation(id) {
+    cancelReservationId = id;
+    document.getElementById('cancelModal').classList.remove('hidden');
+    document.getElementById('cancelModal').classList.add('flex');
+}
+
+function closeCancelModal() {
+    document.getElementById('cancelModal').classList.add('hidden');
+    document.getElementById('cancelModal').classList.remove('flex');
+    cancelReservationId = null;
+}
+
+function confirmCancel() {
+    if (!cancelReservationId) return;
+    
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+    
+    fetch(`/seats/api/cancel-reservation/${cancelReservationId}/`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        closeCancelModal();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast(data.error, 'error');
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `p-4 rounded-xl shadow-lg flex items-center ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
+    toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+        ${message}
+    `;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

@@ -68,6 +68,10 @@
                         <i class="fas fa-book-medical w-6"></i>
                         <span>荐书管理</span>
                     </a>
+                    <a href="{% url 'reading_room_manage' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'reading_room_manage' or request.resolver_match.url_name == 'seat_grid_manage' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
+                        <i class="fas fa-chair w-6"></i>
+                        <span>阅览室管理</span>
+                    </a>
                     <a href="{% url 'system_settings' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'system_settings' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
                         <i class="fas fa-cog w-6"></i>
                         <span>系统设置</span>
@@ -77,6 +81,14 @@
                     <a href="{% url 'book_browse' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'book_browse' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
                         <i class="fas fa-search w-6"></i>
                         <span>浏览图书</span>
+                    </a>
+                    <a href="{% url 'seat_reservation' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'seat_reservation' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
+                        <i class="fas fa-chair w-6"></i>
+                        <span>座位预约</span>
+                    </a>
+                    <a href="{% url 'my_reservations' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'my_reservations' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
+                        <i class="fas fa-calendar-check w-6"></i>
+                        <span>我的预约</span>
                     </a>
                     <a href="{% url 'my_loans' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'my_loans' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
                         <i class="fas fa-list w-6"></i>
