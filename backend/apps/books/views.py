@@ -8,6 +8,7 @@ from django.core.files.storage import default_storage
 from .models import Book, LoanRecord, Announcement, Category, SiteConfig
 from apps.users.models import User
 from apps.recommendations.models import Recommendation
+from apps.recommender.services import get_cached_recommendations, get_recommendation_status
 from apps.notifications.services import send_notification
 from datetime import date, timedelta
 from django.utils import timezone
@@ -27,8 +28,13 @@ def admin_dashboard(request):
         'pending_requests': LoanRecord.objects.filter(status='pending').count(),
     }
     
+    recommender_stats = get_recommendation_status()
     recent_loans = LoanRecord.objects.all().order_by('-borrow_date')[:5]
-    return render(request, 'admin/dashboard.html', {'stats': stats, 'recent_loans': recent_loans})
+    return render(request, 'admin/dashboard.html', {
+        'stats': stats,
+        'recent_loans': recent_loans,
+        'recommender_stats': recommender_stats
+    })
 
 @login_required
 def dashboard_chart_data(request):
@@ -355,15 +361,20 @@ def announcement_delete(request, pk):
 def announcement_create(request):
     return redirect('system_settings')
     
-# Helper function
 def home(request):
     announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:5]
     latest_books = Book.objects.all().order_by('-created_at')[:8]
     hot_recommendations = Recommendation.objects.filter(status='approved').order_by('-reviewed_at')[:5]
     config = SiteConfig.get_solo()
+    
+    personalized_recommendations = None
+    if request.user.is_authenticated and request.user.role == 'reader':
+        personalized_recommendations = get_cached_recommendations(request.user)
+    
     return render(request, 'books/home.html', {
         'announcements': announcements,
         'latest_books': latest_books,
         'hot_recommendations': hot_recommendations,
-        'config': config
+        'config': config,
+        'personalized_recommendations': personalized_recommendations
     })

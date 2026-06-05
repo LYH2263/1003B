@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- Stats Grid -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
     <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
         <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl">
             <i class="fas fa-book"></i>
@@ -42,6 +42,16 @@
         <div>
             <p class="text-sm font-medium text-slate-500">待审批</p>
             <h4 class="text-2xl font-bold text-slate-900">{{ stats.pending_requests }}</h4>
+        </div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
+        <div class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl">
+            <i class="fas fa-magic"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-slate-500">推荐覆盖</p>
+            <h4 class="text-2xl font-bold text-slate-900">{{ recommender_stats.coverage|floatformat:1 }}%</h4>
         </div>
     </div>
 </div>
@@ -136,6 +146,39 @@
             </div>
             <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">活跃度提示</p>
             <p class="text-sm font-light leading-relaxed">本周系统处理了 <span class="text-indigo-400 font-bold">24</span> 笔借阅请求，比上周提升了 12%。继续保持！</p>
+        </div>
+        
+        <div class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-3xl p-6 text-white overflow-hidden relative shadow-xl">
+            <div class="absolute -right-4 -bottom-4 opacity-10">
+                <i class="fas fa-cogs text-8xl"></i>
+            </div>
+            <p class="text-purple-200 text-xs font-bold uppercase tracking-widest mb-3">推荐引擎状态</p>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-purple-200">已缓存用户</span>
+                    <span class="font-bold">{{ recommender_stats.cached_users }} / {{ recommender_stats.total_users }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-purple-200">覆盖率</span>
+                    <span class="font-bold">{{ recommender_stats.coverage|floatformat:1 }}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-purple-200">最后更新</span>
+                    <span class="font-bold text-xs">
+                        {% if recommender_stats.last_updated %}
+                            {{ recommender_stats.last_updated|date:"m-d H:i" }}
+                        {% else %}
+                            未运行
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-white/20">
+                <p class="text-xs text-purple-200">
+                    <i class="fas fa-terminal mr-1"></i>
+                    运行 <code class="bg-white/20 px-1.5 py-0.5 rounded">python manage.py refresh_recommendations</code> 批量更新
+                </p>
+            </div>
         </div>
     </div>
 </div>
