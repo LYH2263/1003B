@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse
 from .models import Book, LoanRecord, Announcement, Category, SiteConfig
 from apps.users.models import User
+from apps.recommendations.models import Recommendation
 from datetime import date, timedelta
 from django.utils import timezone
 
@@ -298,12 +299,14 @@ def announcement_create(request):
     return redirect('system_settings')
     
 # Helper function
-def home(request): # Re-definition at the end to catch all context? No, just ensuring clean file content in write_to_file
+def home(request):
     announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:5]
     latest_books = Book.objects.all().order_by('-created_at')[:8]
+    hot_recommendations = Recommendation.objects.filter(status='approved').order_by('-reviewed_at')[:5]
     config = SiteConfig.get_solo()
     return render(request, 'books/home.html', {
         'announcements': announcements,
         'latest_books': latest_books,
+        'hot_recommendations': hot_recommendations,
         'config': config
     })
