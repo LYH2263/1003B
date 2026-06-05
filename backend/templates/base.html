@@ -68,6 +68,10 @@
                         <i class="fas fa-book-medical w-6"></i>
                         <span>荐书管理</span>
                     </a>
+                    <a href="{% url 'donation_manage' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'donation_manage' or request.resolver_match.url_name == 'donation_detail' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
+                        <i class="fas fa-hand-holding-heart w-6"></i>
+                        <span>捐赠管理</span>
+                    </a>
                     <a href="{% url 'reading_room_manage' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'reading_room_manage' or request.resolver_match.url_name == 'seat_grid_manage' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
                         <i class="fas fa-chair w-6"></i>
                         <span>阅览室管理</span>
@@ -98,12 +102,28 @@
                         <i class="fas fa-star w-6"></i>
                         <span>我要荐书</span>
                     </a>
+                    <a href="{% url 'donation_submit' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'donation_submit' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
+                        <i class="fas fa-hand-holding-heart w-6"></i>
+                        <span>图书捐赠</span>
+                    </a>
+                    <a href="{% url 'donation_query' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'donation_query' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
+                        <i class="fas fa-search w-6"></i>
+                        <span>捐赠查询</span>
+                    </a>
                     <a href="{% url 'profile' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors {% if request.resolver_match.url_name == 'profile' %}bg-primary text-white{% else %}text-slate-400{% endif %}">
                         <i class="fas fa-user-circle w-6"></i>
                         <span>个人资料</span>
                     </a>
                 {% endif %}
             {% else %}
+                <a href="{% url 'donation_submit' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors text-slate-400">
+                    <i class="fas fa-hand-holding-heart w-6"></i>
+                    <span>图书捐赠</span>
+                </a>
+                <a href="{% url 'donation_query' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors text-slate-400">
+                    <i class="fas fa-search w-6"></i>
+                    <span>捐赠查询</span>
+                </a>
                 <a href="{% url 'login' %}" class="flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition-colors text-slate-400">
                     <i class="fas fa-sign-in-alt w-6"></i>
                     <span>立即登录</span>

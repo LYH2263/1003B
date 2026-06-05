@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}捐赠管理 - 龙猫图书{% endblock %}
+{% block page_title %}捐赠管理{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
+            <div class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl">
+                <i class="fas fa-gift"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-slate-500">本月捐赠</p>
+                <h4 class="text-2xl font-bold text-slate-900">{{ monthly_stats }} 本</h4>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-slate-500">本年捐赠</p>
+                <h4 class="text-2xl font-bold text-slate-900">{{ yearly_stats }} 本</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
+            <h3 class="font-bold text-slate-800">捐赠申请列表</h3>
+            <div class="flex items-center space-x-2">
+                <a href="{% url 'donation_manage' %}" class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if not current_status %}bg-primary text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    全部
+                </a>
+                <a href="?status=pending" class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if current_status == 'pending' %}bg-primary text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    待审核
+                </a>
+                <a href="?status=received" class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if current_status == 'received' %}bg-primary text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    已接收
+                </a>
+                <a href="?status=stocked" class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if current_status == 'stocked' %}bg-primary text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    已入库
+                </a>
+                <a href="?status=rejected" class="px-3 py-1.5 text-sm rounded-lg transition-colors {% if current_status == 'rejected' %}bg-primary text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    已拒绝
+                </a>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50/50 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">追踪编号</th>
+                        <th class="px-6 py-4">捐赠人</th>
+                        <th class="px-6 py-4">联系电话</th>
+                        <th class="px-6 py-4 text-center">图书数量</th>
+                        <th class="px-6 py-4 text-center">状态</th>
+                        <th class="px-6 py-4">提交时间</th>
+                        <th class="px-6 py-4 text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for donation in page_obj %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <span class="font-mono text-sm font-medium text-indigo-600">{{ donation.tracking_number }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-700">{{ donation.donor_name }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">{{ donation.donor_phone }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                                {{ donation.get_total_books }} 本
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2 py-1 text-[10px] font-bold rounded-full 
+                                {% if donation.status == 'pending' %}bg-orange-100 text-orange-700
+                                {% elif donation.status == 'received' %}bg-blue-100 text-blue-700
+                                {% elif donation.status == 'stocked' %}bg-green-100 text-green-700
+                                {% else %}bg-red-100 text-red-700{% endif %}">
+                                {{ donation.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-xs text-slate-400">{{ donation.created_at|date:"Y-m-d H:i" }}</td>
+                        <td class="px-6 py-4 text-center space-x-2">
+                            <a href="{% url 'donation_detail' donation.pk %}" class="text-primary hover:text-primary/80 text-xs font-medium">
+                                查看
+                            </a>
+                            {% if donation.status != 'rejected' and donation.status != 'stocked' %}
+                            <a href="{% url 'thank_you_pdf' donation.pk %}" target="_blank" class="text-emerald-600 hover:text-emerald-700 text-xs font-medium">
+                                感谢信
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-10 text-center text-slate-300 text-sm">暂无捐赠记录</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+            <p class="text-sm text-slate-500">
+                显示第 {{ page_obj.start_index }} - {{ page_obj.end_index }} 条，共 {{ page_obj.paginator.count }} 条
+            </p>
+            <div class="flex space-x-1">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}" class="px-3 py-1 text-sm rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    上一页
+                </a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                <span class="px-3 py-1 text-sm rounded-lg bg-primary text-white">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if current_status %}&status={{ current_status }}{% endif %}" class="px-3 py-1 text-sm rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">{{ num }}</a>
+                {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}" class="px-3 py-1 text-sm rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    下一页
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

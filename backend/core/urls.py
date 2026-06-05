@@ -10,6 +10,7 @@ urlpatterns = [
     path('recommendations/', include('apps.recommendations.urls')),
     path('notifications/', include('apps.notifications.urls')),
     path('seats/', include('apps.seats.urls')),
+    path('donations/', include('apps.donations.urls')),
 ]
 
 if settings.DEBUG:

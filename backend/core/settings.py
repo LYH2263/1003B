@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'apps.recommendations.apps.RecommendationsConfig',
     'apps.notifications.apps.NotificationsConfig',
     'apps.seats.apps.SeatsConfig',
+    'apps.donations.apps.DonationsConfig',
 ]
 
 MIDDLEWARE = [

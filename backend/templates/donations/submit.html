@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}图书捐赠 - 龙猫图书{% endblock %}
+{% block page_title %}图书捐赠{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-hand-holding-heart text-2xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white">图书捐赠</h1>
+                    <p class="text-indigo-100 text-sm">感谢您的爱心捐赠，让知识传递更远</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="p-8 space-y-8">
+            {% csrf_token %}
+
+            <div>
+                <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                    <i class="fas fa-user-circle text-indigo-500 mr-2"></i>
+                    捐赠人信息
+                </h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">
+                            姓名 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="donor_name" required
+                            class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            placeholder="请输入您的姓名">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">
+                            联系电话 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="tel" name="donor_phone" required
+                            class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            placeholder="请输入联系电话">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">
+                            邮箱 <span class="text-slate-400 text-xs">(选填)</span>
+                        </label>
+                        <input type="email" name="donor_email"
+                            class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            placeholder="请输入邮箱地址">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">
+                            备注 <span class="text-slate-400 text-xs">(选填)</span>
+                        </label>
+                        <input type="text" name="remark"
+                            class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            placeholder="其他说明">
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-slate-800 flex items-center">
+                        <i class="fas fa-book text-indigo-500 mr-2"></i>
+                        捐赠图书清单
+                    </h3>
+                    <button type="button" onclick="addBookRow()"
+                        class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors text-sm font-medium">
+                        <i class="fas fa-plus mr-1"></i> 添加图书
+                    </button>
+                </div>
+
+                <div id="books-container" class="space-y-4">
+                </div>
+
+                <div id="empty-state" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
+                    <i class="fas fa-book-open text-4xl text-slate-300 mb-3"></i>
+                    <p class="text-slate-400">点击上方"添加图书"按钮开始添加捐赠图书</p>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-6 flex items-center justify-between">
+                <a href="{% url 'donation_query' %}" class="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+                    <i class="fas fa-search mr-1"></i> 已有追踪编号？查询进度
+                </a>
+                <button type="submit"
+                    class="px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium">
+                    <i class="fas fa-paper-plane mr-2"></i>
+                    提交捐赠申请
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let bookCount = 0;
+
+function addBookRow() {
+    bookCount++;
+    const container = document.getElementById('books-container');
+    const emptyState = document.getElementById('empty-state');
+    
+    if (bookCount === 1) {
+        emptyState.style.display = 'none';
+    }
+
+    const row = document.createElement('div');
+    row.className = 'book-row bg-slate-50 rounded-2xl p-5 border border-slate-100';
+    row.id = `book-row-${bookCount}`;
+    row.innerHTML = `
+        <div class="flex items-center justify-between mb-4">
+            <span class="text-sm font-medium text-slate-600">图书 #${bookCount}</span>
+            <button type="button" onclick="removeBookRow(${bookCount})" 
+                class="text-red-500 hover:text-red-600 text-sm">
+                <i class="fas fa-trash-alt"></i> 删除
+            </button>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1">书名 *</label>
+                <input type="text" name="title[]" required
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                    placeholder="书名">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1">作者 *</label>
+                <input type="text" name="author[]" required
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                    placeholder="作者">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1">ISBN</label>
+                <input type="text" name="isbn[]"
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                    placeholder="ISBN">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1">数量</label>
+                <input type="number" name="quantity[]" min="1" value="1"
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1">新旧程度</label>
+                <select name="condition[]"
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm">
+                    <option value="new">全新</option>
+                    <option value="like_new">几乎全新</option>
+                    <option value="good" selected>良好</option>
+                    <option value="fair">一般</option>
+                    <option value="poor">破旧</option>
+                </select>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(row);
+}
+
+function removeBookRow(id) {
+    const row = document.getElementById(`book-row-${id}`);
+    if (row) {
+        row.remove();
+        bookCount--;
+        if (bookCount === 0) {
+            document.getElementById('empty-state').style.display = 'block';
+        }
+    }
+}
+
+addBookRow();
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}捐赠成功 - 龙猫图书{% endblock %}
+{% block page_title %}捐赠成功{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-green-500 to-emerald-500 px-8 py-12 text-center">
+            <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check-circle text-4xl text-white"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-white mb-2">捐赠申请提交成功！</h1>
+            <p class="text-green-100">感谢您的爱心捐赠</p>
+        </div>
+
+        <div class="p-8 text-center">
+            <div class="bg-indigo-50 rounded-2xl p-6 mb-8">
+                <p class="text-slate-500 text-sm mb-2">您的捐赠追踪编号</p>
+                <div class="text-3xl font-mono font-bold text-indigo-600 tracking-wider">
+                    {{ tracking_number }}
+                </div>
+                <p class="text-slate-400 text-xs mt-2">请妥善保存此编号，用于查询捐赠处理进度</p>
+            </div>
+
+            <div class="space-y-4">
+                <a href="{% url 'donation_query' %}"
+                    class="block w-full py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium">
+                    <i class="fas fa-search mr-2"></i>
+                    查询捐赠进度
+                </a>
+                <a href="{% url 'donation_submit' %}"
+                    class="block w-full py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors font-medium">
+                    <i class="fas fa-plus mr-2"></i>
+                    继续捐赠图书
+                </a>
+                <a href="{% url 'home' %}"
+                    class="block w-full py-3 text-slate-500 hover:text-slate-700 transition-colors text-sm">
+                    返回首页
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
