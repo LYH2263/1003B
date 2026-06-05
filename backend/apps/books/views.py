@@ -8,6 +8,7 @@ from django.core.files.storage import default_storage
 from .models import Book, LoanRecord, Announcement, Category, SiteConfig
 from apps.users.models import User
 from apps.recommendations.models import Recommendation
+from apps.notifications.services import send_notification
 from datetime import date, timedelta
 from django.utils import timezone
 import os
@@ -286,12 +287,26 @@ def audit_loan(request, pk, action):
             loan.book.stock -= 1
             loan.book.save()
             loan.save()
+            send_notification(
+                recipient=loan.user,
+                notification_type='borrow_audit',
+                title='借阅申请已批准',
+                content=f'您借阅《{loan.book.title}》的申请已通过审批，请及时领取图书。',
+                related_object_id=loan.id
+            )
             messages.success(request, "借阅申请已批准。")
         else:
             messages.error(request, "库存不足，无法批准。")
     elif action == 'reject':
         loan.status = 'rejected'
         loan.save()
+        send_notification(
+            recipient=loan.user,
+            notification_type='borrow_audit',
+            title='借阅申请被拒绝',
+            content=f'很抱歉，您借阅《{loan.book.title}》的申请未通过审批。',
+            related_object_id=loan.id
+        )
         messages.success(request, "借阅申请已拒绝。")
     elif action == 'return':
         loan.status = 'returned'

@@ -8,6 +8,7 @@ urlpatterns = [
     path('', include('apps.books.urls')),
     path('users/', include('apps.users.urls')),
     path('recommendations/', include('apps.recommendations.urls')),
+    path('notifications/', include('apps.notifications.urls')),
 ]
 
 if settings.DEBUG:
