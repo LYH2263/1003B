@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% block title %}{{ book.title }} - 在线阅读{% endblock %}
+{% block page_title %}{{ book.title }}{% endblock %}
+
+{% block content %}
+<style>
+    .pdf-container {
+        background: #1a1a2e;
+        min-height: calc(100vh - 200px);
+    }
+    #pdf-canvas {
+        max-width: 100%;
+        height: auto;
+        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    .pdf-controls {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    .control-btn {
+        transition: all 0.2s ease;
+    }
+    .control-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+    }
+    .control-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .book-info-card {
+        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    }
+</style>
+
+<div class="flex flex-col lg:flex-row gap-6 h-full">
+    <div class="flex-1 pdf-container rounded-3xl overflow-hidden shadow-2xl">
+        <div class="pdf-controls p-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-2">
+                <a href="{% url 'book_detail' book.pk %}" class="control-btn px-4 py-2 bg-slate-700 text-white rounded-xl hover:bg-slate-600 text-sm font-medium">
+                    <i class="fas fa-arrow-left mr-2"></i> 返回
+                </a>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="prevPage()" class="control-btn px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 text-sm font-medium" id="prevBtn">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="flex items-center space-x-2 bg-slate-800 px-4 py-2 rounded-xl">
+                    <input type="number" id="pageNum" min="1" class="w-16 bg-transparent text-white text-center font-bold outline-none border-b border-slate-600 focus:border-indigo-400">
+                    <span class="text-slate-400">/</span>
+                    <span id="pageCount" class="text-white font-bold">0</span>
+                </div>
+                <button onclick="nextPage()" class="control-btn px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 text-sm font-medium" id="nextBtn">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <button onclick="zoomOut()" class="control-btn px-3 py-2 bg-slate-700 text-white rounded-xl hover:bg-slate-600 text-sm">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button onclick="fitWidth()" class="control-btn px-4 py-2 bg-slate-700 text-white rounded-xl hover:bg-slate-600 text-sm font-medium">
+                    <i class="fas fa-arrows-alt-h mr-1"></i> 适应宽度
+                </button>
+                <button onclick="zoomIn()" class="control-btn px-3 py-2 bg-slate-700 text-white rounded-xl hover:bg-slate-600 text-sm">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+                <span id="zoomLevel" class="text-white text-sm font-mono ml-2 w-16 text-center">100%</span>
+            </div>
+        </div>
+        
+        <div class="p-6 flex justify-center overflow-auto" id="pdf-wrapper">
+            <canvas id="pdf-canvas"></canvas>
+        </div>
+    </div>
+    
+    <div class="lg:w-80 shrink-0">
+        <div class="book-info-card rounded-3xl shadow-xl p-6 sticky top-6">
+            <div class="aspect-[3/4] rounded-2xl overflow-hidden shadow-lg mb-6">
+                {% if book.cover %}
+                    <img src="{{ book.cover.url }}" class="w-full h-full object-cover">
+                {% else %}
+                    <div class="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                        <i class="fas fa-book text-6xl text-indigo-300"></i>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-1">{{ book.title }}</h3>
+                    <p class="text-sm text-slate-500">作者: {{ book.author }}</p>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg">
+                        {{ book.category.name|default:"未分类" }}
+                    </span>
+                    <span class="text-xs text-slate-400 font-mono">ISBN: {{ book.isbn }}</span>
+                </div>
+                
+                <div class="border-t border-slate-100 pt-4">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">内容简介</h4>
+                    <p class="text-sm text-slate-600 leading-relaxed line-clamp-4">
+                        {{ book.description|default:"暂无简介" }}
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="bg-slate-50 p-3 rounded-xl text-center">
+                        <p class="text-2xl font-black text-slate-800">{{ book.stock }}</p>
+                        <p class="text-xs text-slate-400">可借库存</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl text-center">
+                        <p class="text-2xl font-black text-indigo-600" id="totalPages">0</p>
+                        <p class="text-xs text-slate-400">试读页数</p>
+                    </div>
+                </div>
+                
+                {% if book.stock > 0 %}
+                    <a href="{% url 'borrow_request' book.pk %}" class="block w-full py-3 bg-indigo-600 text-white text-center font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all">
+                        <i class="fas fa-hand-holding-heart mr-2"></i> 申请借阅
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    let pdfDoc = null;
+    let pageNum = 1;
+    let pageRendering = false;
+    let pageNumPending = null;
+    let scale = 1.5;
+    let baseScale = 1.5;
+    const canvas = document.getElementById('pdf-canvas');
+    const ctx = canvas.getContext('2d');
+    const bookId = {{ book.pk }};
+    const storageKey = `book_${bookId}_page`;
+    const zoomKey = `book_${bookId}_zoom`;
+
+    function renderPage(num) {
+        pageRendering = true;
+        pdfDoc.getPage(num).then(function(page) {
+            const viewport = page.getViewport({scale: scale});
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+            const renderTask = page.render(renderContext);
+
+            renderTask.promise.then(function() {
+                pageRendering = false;
+                if (pageNumPending !== null) {
+                    renderPage(pageNumPending);
+                    pageNumPending = null;
+                }
+            });
+        });
+
+        document.getElementById('pageNum').value = num;
+        document.getElementById('prevBtn').disabled = num <= 1;
+        document.getElementById('nextBtn').disabled = num >= pdfDoc.numPages;
+        
+        localStorage.setItem(storageKey, num);
+        pageNum = num;
+    }
+
+    function queueRenderPage(num) {
+        if (pageRendering) {
+            pageNumPending = num;
+        } else {
+            renderPage(num);
+        }
+    }
+
+    function prevPage() {
+        if (pageNum <= 1) return;
+        pageNum--;
+        queueRenderPage(pageNum);
+    }
+
+    function nextPage() {
+        if (pageNum >= pdfDoc.numPages) return;
+        pageNum++;
+        queueRenderPage(pageNum);
+    }
+
+    function zoomIn() {
+        scale = Math.min(scale * 1.2, 3);
+        updateZoom();
+        queueRenderPage(pageNum);
+    }
+
+    function zoomOut() {
+        scale = Math.max(scale / 1.2, 0.5);
+        updateZoom();
+        queueRenderPage(pageNum);
+    }
+
+    function fitWidth() {
+        const wrapper = document.getElementById('pdf-wrapper');
+        const wrapperWidth = wrapper.clientWidth - 48;
+        
+        pdfDoc.getPage(pageNum).then(function(page) {
+            const viewport = page.getViewport({scale: 1});
+            scale = wrapperWidth / viewport.width;
+            baseScale = scale;
+            updateZoom();
+            queueRenderPage(pageNum);
+        });
+    }
+
+    function updateZoom() {
+        document.getElementById('zoomLevel').textContent = Math.round(scale / baseScale * 100) + '%';
+        localStorage.setItem(zoomKey, scale);
+    }
+
+    document.getElementById('pageNum').addEventListener('change', function(e) {
+        const num = parseInt(e.target.value);
+        if (num >= 1 && num <= pdfDoc.numPages) {
+            pageNum = num;
+            queueRenderPage(pageNum);
+        } else {
+            e.target.value = pageNum;
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') {
+            prevPage();
+        } else if (e.key === 'ArrowRight') {
+            nextPage();
+        } else if (e.key === '+' || e.key === '=') {
+            zoomIn();
+        } else if (e.key === '-') {
+            zoomOut();
+        }
+    });
+
+    const savedPage = localStorage.getItem(storageKey);
+    const savedZoom = localStorage.getItem(zoomKey);
+    if (savedZoom) {
+        scale = parseFloat(savedZoom);
+    }
+
+    pdfjsLib.getDocument('{{ book.preview_file.url }}').promise.then(function(pdfDoc_) {
+        pdfDoc = pdfDoc_;
+        document.getElementById('pageCount').textContent = pdfDoc.numPages;
+        document.getElementById('totalPages').textContent = pdfDoc.numPages;
+        
+        const startPage = savedPage ? parseInt(savedPage) : 1;
+        if (startPage > 0 && startPage <= pdfDoc.numPages) {
+            renderPage(startPage);
+        } else {
+            renderPage(1);
+        }
+        
+        setTimeout(fitWidth, 100);
+    }).catch(function(error) {
+        console.error('Error loading PDF:', error);
+        alert('加载 PDF 失败，请稍后重试。');
+    });
+</script>
+{% endblock %}

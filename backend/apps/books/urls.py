@@ -8,8 +8,10 @@ urlpatterns = [
     
     # Book Management
     path('books/manage/', views.book_manage, name='book_manage'),
-    path('books/create/', views.book_create, name='book_create'), # Added
-    path('books/<int:pk>/edit/', views.book_edit, name='book_edit'), # Added
+    path('books/create/', views.book_create, name='book_create'),
+    path('books/<int:pk>/edit/', views.book_edit, name='book_edit'),
+    path('books/<int:pk>/delete-preview/', views.book_delete_preview, name='book_delete_preview'),
+    path('books/<int:pk>/read/', views.book_read, name='book_read'),
     path('books/browse/', views.book_browse, name='book_browse'),
     path('books/<int:pk>/', views.book_detail, name='book_detail'),
     path('books/<int:pk>/borrow/', views.borrow_request, name='borrow_request'),

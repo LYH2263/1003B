@@ -3,12 +3,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.core.files.storage import default_storage
 from .models import Book, LoanRecord, Announcement, Category, SiteConfig
 from apps.users.models import User
 from apps.recommendations.models import Recommendation
 from datetime import date, timedelta
 from django.utils import timezone
+import os
 
 # ... (Previous simple views: home, admin_dashboard)
 
@@ -94,6 +96,15 @@ def book_create(request):
         description = request.POST.get('description')
         total_stock = int(request.POST.get('total_stock', 0))
         cover = request.FILES.get('cover')
+        preview_file = request.FILES.get('preview_file')
+        
+        if preview_file:
+            if not preview_file.name.lower().endswith('.pdf'):
+                messages.error(request, "只允许上传 PDF 文件作为试读章节。")
+                return redirect('book_manage')
+            if preview_file.size > 20 * 1024 * 1024:
+                messages.error(request, "试读文件大小不能超过 20MB。")
+                return redirect('book_manage')
         
         if Book.objects.filter(isbn=isbn).exists():
             messages.error(request, "ISBN 已存在，请检查输入。")
@@ -105,9 +116,10 @@ def book_create(request):
                 isbn=isbn,
                 category=category,
                 description=description,
-                stock=total_stock, # Initial stock equals total stock
+                stock=total_stock,
                 total_stock=total_stock,
-                cover=cover
+                cover=cover,
+                preview_file=preview_file
             )
             messages.success(request, f"图书《{title}》已成功上架。")
     
@@ -123,7 +135,6 @@ def book_edit(request, pk):
     if request.method == 'POST':
         book.title = request.POST.get('title')
         book.author = request.POST.get('author')
-        # ISBN typically shouldn't be changed easily or needs validation, but allowing for correction
         new_isbn = request.POST.get('isbn')
         if new_isbn != book.isbn and Book.objects.filter(isbn=new_isbn).exists():
              messages.error(request, "新的 ISBN 已存在。")
@@ -134,7 +145,6 @@ def book_edit(request, pk):
         book.category = Category.objects.get(pk=category_id) if category_id else None
         book.description = request.POST.get('description')
         
-        # Stock logic: Update total. If total increases, increase current stock.
         new_total = int(request.POST.get('total_stock', 0))
         diff = new_total - book.total_stock
         book.total_stock = new_total
@@ -142,10 +152,34 @@ def book_edit(request, pk):
         
         if request.FILES.get('cover'):
             book.cover = request.FILES.get('cover')
+        
+        preview_file = request.FILES.get('preview_file')
+        if preview_file:
+            if not preview_file.name.lower().endswith('.pdf'):
+                messages.error(request, "只允许上传 PDF 文件作为试读章节。")
+                return redirect('book_manage')
+            if preview_file.size > 20 * 1024 * 1024:
+                messages.error(request, "试读文件大小不能超过 20MB。")
+                return redirect('book_manage')
+            if book.preview_file:
+                default_storage.delete(book.preview_file.path)
+            book.preview_file = preview_file
             
         book.save()
         messages.success(request, f"图书《{book.title}》信息已更新。")
         
+    return redirect('book_manage')
+
+@login_required
+def book_delete_preview(request, pk):
+    if request.user.role != 'admin':
+        return redirect('home')
+    book = get_object_or_404(Book, pk=pk)
+    if book.preview_file:
+        default_storage.delete(book.preview_file.path)
+        book.preview_file = None
+        book.save()
+        messages.success(request, "试读文件已成功删除。")
     return redirect('book_manage')
 
 @login_required
@@ -198,6 +232,14 @@ def book_browse(request):
 def book_detail(request, pk):
     book = get_object_or_404(Book, pk=pk)
     return render(request, 'books/detail.html', {'book': book})
+
+@login_required
+def book_read(request, pk):
+    book = get_object_or_404(Book, pk=pk)
+    if not book.preview_file:
+        messages.error(request, "该图书暂无试读章节。")
+        return redirect('book_detail', pk=pk)
+    return render(request, 'books/read.html', {'book': book})
 
 @login_required
 def borrow_request(request, pk):

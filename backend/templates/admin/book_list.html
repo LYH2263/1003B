@@ -55,9 +55,14 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 text-center space-x-2">
-                        <button onclick="openBookModal('{{ book.pk }}', '{{ book.title }}', '{{ book.author }}', '{{ book.isbn }}', '{{ book.category.id }}', '{{ book.total_stock }}', `{{ book.description|escapejs }}`)" class="p-2 text-slate-400 hover:text-primary transition-colors">
+                        <button onclick="openBookModal('{{ book.pk }}', '{{ book.title }}', '{{ book.author }}', '{{ book.isbn }}', '{{ book.category.id }}', '{{ book.total_stock }}', `{{ book.description|escapejs }}`, {{ book.preview_file|yesno:'True,False' }}{% if book.preview_file %}, '{{ book.preview_file.name }}'{% endif %})" class="p-2 text-slate-400 hover:text-primary transition-colors">
                             <i class="fas fa-edit"></i>
                         </button>
+                        {% if book.preview_file %}
+                        <a href="{% url 'book_read' book.pk %}" target="_blank" class="p-2 text-slate-400 hover:text-green-500 transition-colors" title="预览试读">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        {% endif %}
                         <button onclick="uiConfirm('确认删除', '您确定要从库中移除《{{ book.title }}》吗？此操作不可撤销。', ()=>document.getElementById('delete-form-{{ book.pk }}').submit())" class="p-2 text-slate-400 hover:text-red-500 transition-colors">
                             <i class="fas fa-trash-alt"></i>
                         </button>
@@ -147,6 +152,20 @@
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-2">封面图片</label>
                     <input type="file" name="cover" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                 </div>
+                <div class="col-span-2" id="previewFileSection">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">试读章节 (PDF)</label>
+                    <div id="currentPreviewFile" class="hidden mb-3 p-3 bg-slate-50 rounded-xl flex items-center justify-between">
+                        <span class="text-sm text-slate-600 flex items-center">
+                            <i class="fas fa-file-pdf text-red-500 mr-2"></i>
+                            <span id="previewFileName"></span>
+                        </span>
+                        <button type="button" onclick="deletePreviewFile()" class="text-red-500 hover:text-red-700 text-sm font-medium">
+                            <i class="fas fa-trash-alt mr-1"></i> 删除
+                        </button>
+                    </div>
+                    <input type="file" name="preview_file" accept=".pdf" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    <p class="text-xs text-slate-400 mt-1">仅支持 PDF 格式，最大 20MB</p>
+                </div>
             </div>
             
             <div class="flex justify-end space-x-4">
@@ -158,14 +177,19 @@
 </div>
 
 <script>
-    function openBookModal(pk, title, author, isbn, categoryId, totalStock, description) {
+    let currentBookPk = null;
+
+    function openBookModal(pk, title, author, isbn, categoryId, totalStock, description, hasPreview, previewName) {
         const modal = document.getElementById('bookModal');
         const modalContent = document.getElementById('bookModalContent');
         const form = document.getElementById('bookForm');
         const modalTitle = document.getElementById('modalTitle');
+        const currentPreviewDiv = document.getElementById('currentPreviewFile');
+        const previewFileNameSpan = document.getElementById('previewFileName');
+        
+        currentBookPk = pk;
         
         if (pk) {
-            // Edit Mode
             modalTitle.innerText = "编辑图书信息";
             form.action = `/books/${pk}/edit/`;
             document.getElementById('bookTitle').value = title;
@@ -174,11 +198,23 @@
             document.getElementById('bookCategory').value = categoryId;
             document.getElementById('bookTotalStock').value = totalStock;
             document.getElementById('bookDescription').value = description;
+            
+            if (hasPreview === 'True' || hasPreview === true) {
+                currentPreviewDiv.classList.remove('hidden');
+                if (previewName) {
+                    const nameParts = previewName.split('/');
+                    previewFileNameSpan.textContent = nameParts[nameParts.length - 1];
+                } else {
+                    previewFileNameSpan.textContent = '已上传';
+                }
+            } else {
+                currentPreviewDiv.classList.add('hidden');
+            }
         } else {
-            // Create Mode
             modalTitle.innerText = "上架新书";
             form.action = "{% url 'book_create' %}";
             form.reset();
+            currentPreviewDiv.classList.add('hidden');
         }
         
         modal.classList.remove('hidden');
@@ -200,6 +236,12 @@
         setTimeout(() => {
             modal.classList.add('hidden');
         }, 300);
+    }
+
+    function deletePreviewFile() {
+        if (currentBookPk && confirm('确定要删除试读文件吗？')) {
+            window.location.href = `/books/${currentBookPk}/delete-preview/`;
+        }
     }
 </script>
 {% endblock %}

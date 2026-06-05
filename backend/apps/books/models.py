@@ -11,6 +11,15 @@ class Category(models.Model):
         verbose_name = "图书分类"
         verbose_name_plural = verbose_name
 
+def validate_pdf_file(value):
+    import os
+    from django.core.exceptions import ValidationError
+    ext = os.path.splitext(value.name)[1].lower()
+    if ext != '.pdf':
+        raise ValidationError('只允许上传 PDF 文件。')
+    if value.size > 20 * 1024 * 1024:
+        raise ValidationError('文件大小不能超过 20MB。')
+
 class Book(models.Model):
     title = models.CharField(max_length=100, verbose_name="书名")
     author = models.CharField(max_length=50, verbose_name="作者")
@@ -18,6 +27,13 @@ class Book(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, verbose_name="分类")
     description = models.TextField(blank=True, verbose_name="简介")
     cover = models.ImageField(upload_to='book_covers/', blank=True, null=True, verbose_name="封面")
+    preview_file = models.FileField(
+        upload_to='book_previews/',
+        blank=True,
+        null=True,
+        validators=[validate_pdf_file],
+        verbose_name="试读章节 (PDF)"
+    )
     stock = models.PositiveIntegerField(default=0, verbose_name="当前库存")
     total_stock = models.PositiveIntegerField(default=0, verbose_name="总库存")
     created_at = models.DateTimeField(auto_now_add=True)
