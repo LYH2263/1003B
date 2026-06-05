@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     # Local Apps
     'apps.users.apps.UsersConfig',
     'apps.books.apps.BooksConfig',
+    'apps.contracts.apps.ContractsConfig',
     'apps.recommendations.apps.RecommendationsConfig',
     'apps.notifications.apps.NotificationsConfig',
     'apps.seats.apps.SeatsConfig',

@@ -31,9 +31,22 @@
             </div>
             
             {% if loan.status == 'borrowed' %}
-            <div class="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
-                <span class="text-[10px] font-bold text-slate-400">距离还书还剩 {{ loan.due_date|timeuntil }}</span>
-                <i class="fas fa-clock text-indigo-200"></i>
+            <div class="mt-4 pt-4 border-t border-slate-50">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-[10px] font-bold text-slate-400">距离还书还剩 {{ loan.due_date|timeuntil }}</span>
+                    <i class="fas fa-clock text-indigo-200"></i>
+                </div>
+                {% if loan.contract %}
+                    {% if loan.contract.status == 'pending' %}
+                    <a href="{% url 'sign_contract' loan.contract.id %}" class="block w-full py-2 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 transition-colors text-center">
+                        <i class="fas fa-pen mr-1"></i>签署协议
+                    </a>
+                    {% elif loan.contract.status == 'signed' %}
+                    <a href="{% url 'download_contract' loan.contract.id %}" class="block w-full py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors text-center">
+                        <i class="fas fa-file-download mr-1"></i>查看协议
+                    </a>
+                    {% endif %}
+                {% endif %}
             </div>
             {% endif %}
         </div>

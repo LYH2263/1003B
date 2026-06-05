@@ -74,13 +74,26 @@
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-[10px] font-bold rounded-md 
-                        {% if loan.status == 'borrowed' %}bg-emerald-50 text-emerald-600
-                        {% elif loan.status == 'pending' %}bg-orange-50 text-orange-600
-                        {% elif loan.status == 'returned' %}bg-slate-50 text-slate-500
-                        {% else %}bg-red-50 text-red-500{% endif %}">
-                        {{ loan.get_status_display }}
-                        </span>
+                        <div class="flex flex-col gap-1">
+                            <span class="px-2 py-1 text-[10px] font-bold rounded-md w-fit
+                            {% if loan.status == 'borrowed' %}bg-emerald-50 text-emerald-600
+                            {% elif loan.status == 'pending' %}bg-orange-50 text-orange-600
+                            {% elif loan.status == 'returned' %}bg-slate-50 text-slate-500
+                            {% else %}bg-red-50 text-red-500{% endif %}">
+                            {{ loan.get_status_display }}
+                            </span>
+                            {% if loan.status == 'borrowed' and loan.contract %}
+                                {% if loan.contract.status == 'pending' %}
+                                <span class="px-2 py-1 text-[10px] font-bold rounded-md bg-rose-50 text-rose-600 w-fit">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>未签署
+                                </span>
+                                {% elif loan.contract.status == 'signed' %}
+                                <span class="px-2 py-1 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-600 w-fit">
+                                    <i class="fas fa-check-circle mr-1"></i>已签署
+                                </span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                     </td>
                     <td class="px-6 py-4 text-center">
                         {% if loan.status == 'pending' %}

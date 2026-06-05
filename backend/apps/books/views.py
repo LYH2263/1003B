@@ -10,6 +10,7 @@ from apps.users.models import User
 from apps.recommendations.models import Recommendation
 from apps.recommender.services import get_cached_recommendations, get_recommendation_status
 from apps.notifications.services import send_notification
+from apps.contracts.views import create_contract_for_loan
 from datetime import date, timedelta
 from django.utils import timezone
 import os
@@ -293,14 +294,15 @@ def audit_loan(request, pk, action):
             loan.book.stock -= 1
             loan.book.save()
             loan.save()
+            create_contract_for_loan(loan)
             send_notification(
                 recipient=loan.user,
                 notification_type='borrow_audit',
                 title='借阅申请已批准',
-                content=f'您借阅《{loan.book.title}》的申请已通过审批，请及时领取图书。',
+                content=f'您借阅《{loan.book.title}》的申请已通过审批，请签署协议后领取图书。',
                 related_object_id=loan.id
             )
-            messages.success(request, "借阅申请已批准。")
+            messages.success(request, "借阅申请已批准，已生成借阅合同。")
         else:
             messages.error(request, "库存不足，无法批准。")
     elif action == 'reject':

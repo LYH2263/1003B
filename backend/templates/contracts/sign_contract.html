@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}签署借阅协议 - 龙猫图书{% endblock %}
+{% block page_title %}电子签署借阅协议{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="font-bold text-lg text-slate-800">
+                <i class="fas fa-file-contract text-indigo-500 mr-2"></i>
+                协议预览
+            </h3>
+            <a href="{% url 'preview_contract' contract.id %}" target="_blank" class="text-sm text-indigo-600 hover:text-indigo-800">
+                <i class="fas fa-external-link-alt mr-1"></i>新窗口打开
+            </a>
+        </div>
+        <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50" style="height: 600px;">
+            <iframe src="{% url 'preview_contract' contract.id %}" class="w-full h-full" frameborder="0"></iframe>
+        </div>
+        <div class="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
+            <p class="text-sm text-amber-700">
+                <i class="fas fa-info-circle mr-2"></i>
+                请仔细阅读以上协议内容，确认无误后在右侧签名区域进行手写签名。
+            </p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+        <h3 class="font-bold text-lg text-slate-800 mb-6">
+            <i class="fas fa-pen-fancy text-indigo-500 mr-2"></i>
+            手写签名
+        </h3>
+
+        <div class="mb-6">
+            <div class="flex items-center gap-4 mb-4">
+                <span class="text-sm text-slate-600">画笔颜色：</span>
+                <button onclick="setPenColor('#000000')" class="w-8 h-8 rounded-full bg-black border-2 border-slate-300 hover:scale-110 transition-transform pen-color-btn" data-color="#000000"></button>
+                <button onclick="setPenColor('#1e40af')" class="w-8 h-8 rounded-full bg-indigo-800 border-2 border-slate-300 hover:scale-110 transition-transform pen-color-btn" data-color="#1e40af"></button>
+                <button onclick="setPenColor('#991b1b')" class="w-8 h-8 rounded-full bg-red-800 border-2 border-slate-300 hover:scale-110 transition-transform pen-color-btn" data-color="#991b1b"></button>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-slate-600">画笔粗细：</span>
+                <input type="range" id="penSize" min="1" max="10" value="3" class="w-32" onchange="setPenSize(this.value)">
+                <span id="penSizeValue" class="text-sm text-slate-500 w-8">3px</span>
+            </div>
+        </div>
+
+        <div class="border-2 border-dashed border-slate-300 rounded-2xl p-1 bg-white relative">
+            <canvas id="signatureCanvas" width="600" height="300" class="w-full cursor-crosshair rounded-xl"></canvas>
+            <div id="signaturePlaceholder" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span class="text-slate-300 text-lg">
+                    <i class="fas fa-pen mr-2"></i>
+                    请在此处签名
+                </span>
+            </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button onclick="clearSignature()" class="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">
+                <i class="fas fa-eraser mr-2"></i>
+                清除重签
+            </button>
+            <button onclick="saveSignature()" class="flex-1 px-6 py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-indigo-100 hover:scale-105 transition-all">
+                <i class="fas fa-check mr-2"></i>
+                确认签署
+            </button>
+        </div>
+
+        <div class="mt-6 pt-6 border-t border-slate-100">
+            <p class="text-xs text-slate-400 leading-relaxed">
+                <i class="fas fa-shield-alt mr-1"></i>
+                您的电子签名具有法律效力。点击"确认签署"即表示您已阅读并同意本协议的全部条款。
+            </p>
+        </div>
+    </div>
+</div>
+
+<form id="signatureForm" method="post" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="signature" id="signatureInput">
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const canvas = document.getElementById('signatureCanvas');
+const ctx = canvas.getContext('2d');
+const placeholder = document.getElementById('signaturePlaceholder');
+let isDrawing = false;
+let hasSignature = false;
+let penColor = '#000000';
+let penSize = 3;
+
+function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const scale = canvas.width / rect.width;
+    ctx.scale(scale, scale);
+}
+
+resizeCanvas();
+
+function getCoordinates(e) {
+    const rect = canvas.getBoundingClientRect();
+    if (e.touches) {
+        return {
+            x: (e.touches[0].clientX - rect.left),
+            y: (e.touches[0].clientY - rect.top)
+        };
+    }
+    return {
+        x: (e.clientX - rect.left),
+        y: (e.clientY - rect.top)
+    };
+}
+
+function startDrawing(e) {
+    e.preventDefault();
+    isDrawing = true;
+    hasSignature = true;
+    placeholder.style.display = 'none';
+    const coords = getCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const coords = getCoordinates(e);
+    ctx.lineTo(coords.x, coords.y);
+    ctx.strokeStyle = penColor;
+    ctx.lineWidth = penSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+}
+
+function stopDrawing() {
+    isDrawing = false;
+}
+
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('mouseleave', stopDrawing);
+
+canvas.addEventListener('touchstart', startDrawing, { passive: false });
+canvas.addEventListener('touchmove', draw, { passive: false });
+canvas.addEventListener('touchend', stopDrawing);
+
+function setPenColor(color) {
+    penColor = color;
+    document.querySelectorAll('.pen-color-btn').forEach(btn => {
+        btn.classList.remove('ring-2', 'ring-offset-2', 'ring-indigo-500');
+        if (btn.dataset.color === color) {
+            btn.classList.add('ring-2', 'ring-offset-2', 'ring-indigo-500');
+        }
+    });
+}
+
+function setPenSize(size) {
+    penSize = parseInt(size);
+    document.getElementById('penSizeValue').textContent = size + 'px';
+}
+
+function clearSignature() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasSignature = false;
+    placeholder.style.display = 'flex';
+}
+
+function saveSignature() {
+    if (!hasSignature) {
+        alert('请先在签名区域进行手写签名');
+        return;
+    }
+
+    const signatureData = canvas.toDataURL('image/png');
+    document.getElementById('signatureInput').value = signatureData;
+    document.getElementById('signatureForm').submit();
+}
+
+setPenColor('#000000');
+</script>
+{% endblock %}
