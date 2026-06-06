@@ -90,23 +90,25 @@ def book_create(request):
     if request.method == 'POST':
         title = request.POST.get('title')
         author = request.POST.get('author')
-        isbn = request.POST.get('isbn')
+        isbn = request.POST.get('isbn', '').strip()
         category_id = request.POST.get('category')
         description = request.POST.get('description')
         total_stock = int(request.POST.get('total_stock', 0))
         cover = request.FILES.get('cover')
-        
-        if Book.objects.filter(isbn=isbn).exists():
+
+        isbn_value = isbn if isbn else None
+
+        if isbn_value and Book.objects.filter(isbn=isbn_value).exists():
             messages.error(request, "ISBN 已存在，请检查输入。")
         else:
             category = Category.objects.get(pk=category_id) if category_id else None
             Book.objects.create(
                 title=title,
                 author=author,
-                isbn=isbn,
+                isbn=isbn_value,
                 category=category,
                 description=description,
-                stock=total_stock, # Initial stock equals total stock
+                stock=total_stock,
                 total_stock=total_stock,
                 cover=cover
             )
@@ -124,26 +126,26 @@ def book_edit(request, pk):
     if request.method == 'POST':
         book.title = request.POST.get('title')
         book.author = request.POST.get('author')
-        # ISBN typically shouldn't be changed easily or needs validation, but allowing for correction
-        new_isbn = request.POST.get('isbn')
-        if new_isbn != book.isbn and Book.objects.filter(isbn=new_isbn).exists():
+        new_isbn = request.POST.get('isbn', '').strip()
+        new_isbn_value = new_isbn if new_isbn else None
+
+        if new_isbn_value != book.isbn and new_isbn_value and Book.objects.filter(isbn=new_isbn_value).exists():
              messages.error(request, "新的 ISBN 已存在。")
              return redirect('book_manage')
-             
-        book.isbn = new_isbn
+
+        book.isbn = new_isbn_value
         category_id = request.POST.get('category')
         book.category = Category.objects.get(pk=category_id) if category_id else None
         book.description = request.POST.get('description')
-        
-        # Stock logic: Update total. If total increases, increase current stock.
+
         new_total = int(request.POST.get('total_stock', 0))
         diff = new_total - book.total_stock
         book.total_stock = new_total
         book.stock += diff
-        
+
         if request.FILES.get('cover'):
             book.cover = request.FILES.get('cover')
-            
+
         book.save()
         messages.success(request, f"图书《{book.title}》信息已更新。")
         

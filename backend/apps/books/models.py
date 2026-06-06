@@ -21,7 +21,7 @@ class Category(models.Model):
 class Book(models.Model):
     title = models.CharField(max_length=100, verbose_name="书名")
     author = models.CharField(max_length=50, verbose_name="作者")
-    isbn = models.CharField(max_length=20, unique=True, verbose_name="ISBN")
+    isbn = models.CharField(max_length=20, unique=True, blank=True, null=True, verbose_name="ISBN")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, verbose_name="分类")
     description = models.TextField(blank=True, verbose_name="简介")
     cover = models.ImageField(upload_to='book_covers/', blank=True, null=True, verbose_name="封面")

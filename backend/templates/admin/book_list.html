@@ -43,7 +43,7 @@
                         <p class="text-sm font-bold text-slate-800">{{ book.title }}</p>
                         <p class="text-xs text-slate-500 mt-1">{{ book.author }}</p>
                     </td>
-                    <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ book.isbn }}</td>
+                    <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ book.isbn|default:"-" }}</td>
                     <td class="px-6 py-4">
                         <div class="flex items-center space-x-2">
                             <span class="text-sm font-bold {% if book.stock <= 2 %}text-red-500{% else %}text-slate-700{% endif %}">{{ book.stock }}</span>
@@ -55,7 +55,7 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 text-center space-x-2">
-                        <button onclick="openBookModal('{{ book.pk }}', '{{ book.title }}', '{{ book.author }}', '{{ book.isbn }}', '{{ book.category.id }}', '{{ book.total_stock }}', `{{ book.description|escapejs }}`)" class="p-2 text-slate-400 hover:text-primary transition-colors">
+                        <button onclick="openBookModal('{{ book.pk }}', '{{ book.title }}', '{{ book.author }}', '{{ book.isbn|default:'' }}', '{{ book.category.id|default:'' }}', '{{ book.total_stock }}', `{{ book.description|escapejs }}`)" class="p-2 text-slate-400 hover:text-primary transition-colors">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button onclick="uiConfirm('确认删除', '您确定要从库中移除《{{ book.title }}》吗？此操作不可撤销。', ()=>document.getElementById('delete-form-{{ book.pk }}').submit())" class="p-2 text-slate-400 hover:text-red-500 transition-colors">

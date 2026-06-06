@@ -176,6 +176,7 @@ def donation_to_books(request, pk):
         descriptions = request.POST.getlist('description[]')
 
         success_count = 0
+        failed_books = []
         for i, book_id in enumerate(book_ids):
             try:
                 donation_book = DonationBook.objects.get(id=book_id, donation=donation)
@@ -185,7 +186,14 @@ def donation_to_books(request, pk):
 
                     category = Category.objects.get(id=category_id) if category_id else None
 
-                    existing_book = Book.objects.filter(isbn=donation_book.isbn).first() if donation_book.isbn else None
+                    isbn_value = donation_book.isbn.strip() if donation_book.isbn else None
+                    if not isbn_value:
+                        isbn_value = None
+
+                    existing_book = None
+                    if isbn_value:
+                        existing_book = Book.objects.filter(isbn=isbn_value).first()
+
                     if existing_book:
                         existing_book.stock += donation_book.quantity
                         existing_book.total_stock += donation_book.quantity
@@ -194,7 +202,7 @@ def donation_to_books(request, pk):
                         Book.objects.create(
                             title=donation_book.title,
                             author=donation_book.author,
-                            isbn=donation_book.isbn,
+                            isbn=isbn_value,
                             category=category,
                             description=description,
                             stock=donation_book.quantity,
@@ -205,16 +213,41 @@ def donation_to_books(request, pk):
                     donation_book.save()
                     success_count += 1
             except Exception as e:
+                failed_books.append(donation_book.title if 'donation_book' in locals() else f'第{i+1}本')
                 continue
 
         if all(book.added_to_library for book in donation.books.all()):
             donation.status = 'stocked'
             donation.save()
 
-        messages.success(request, f'成功入库 {success_count} 种图书。')
+        if failed_books:
+            messages.warning(request, f'成功入库 {success_count} 种图书，{len(failed_books)} 种入库失败：{", ".join(failed_books)}')
+        else:
+            messages.success(request, f'成功入库 {success_count} 种图书。')
         return redirect('donation_detail', pk=pk)
 
     return redirect('donation_detail', pk=pk)
+
+
+def _register_chinese_font():
+    import os
+    font_paths = [
+        'C:/Windows/Fonts/simsun.ttc',
+        'C:/Windows/Fonts/msyh.ttc',
+        '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+    ]
+    font_name = 'ChineseFont'
+    if font_name in pdfmetrics.getRegisteredFontNames():
+        return font_name
+    for font_path in font_paths:
+        if os.path.exists(font_path):
+            try:
+                pdfmetrics.registerFont(TTFont(font_name, font_path))
+                return font_name
+            except:
+                continue
+    return 'Helvetica'
 
 
 @login_required
@@ -230,18 +263,25 @@ def generate_thank_you_pdf(request, pk):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2 * cm, bottomMargin=2 * cm)
 
+    font_name = _register_chinese_font()
+
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
+        fontName=font_name,
         fontSize=18,
         textColor=colors.darkblue,
         alignment=1,
         spaceAfter=30
     )
-    normal_style = styles['Normal']
-    normal_style.fontSize = 12
-    normal_style.leading = 20
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontName=font_name,
+        fontSize=12,
+        leading=20
+    )
 
     elements = []
 
@@ -276,7 +316,7 @@ def generate_thank_you_pdf(request, pk):
         ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, -1), font_name),
         ('FONTSIZE', (0, 0), (-1, 0), 10),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
