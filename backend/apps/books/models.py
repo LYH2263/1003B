@@ -45,6 +45,7 @@ class LoanRecord(models.Model):
         ('borrowed', '借阅中'),
         ('returned', '已归还'),
         ('rejected', '已拒绝'),
+        ('damaged', '待赔偿'),
     )
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="借阅人")

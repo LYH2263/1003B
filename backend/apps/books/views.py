@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.core.files.storage import default_storage
@@ -11,6 +11,7 @@ from apps.users.models import User
 from apps.recommendations.models import Recommendation
 from apps.notifications.services import send_notification
 from apps.recommender.services import get_cached_recommendations, get_recommendation_status
+from apps.damages.models import DamageReport
 from datetime import date, timedelta
 from django.utils import timezone
 
@@ -28,9 +29,23 @@ def admin_dashboard(request):
         'pending_requests': LoanRecord.objects.filter(status='pending').count(),
     }
     
+    today = timezone.now().date()
+    month_start = today.replace(day=1)
+    damage_stats = {
+        'monthly_count': DamageReport.objects.filter(created_at__date__gte=month_start).count(),
+        'total_compensation': DamageReport.objects.filter(
+            status='compensated'
+        ).aggregate(total=Sum('compensation_amount'))['total'] or 0,
+    }
+    
     recommender_stats = get_recommendation_status()
     recent_loans = LoanRecord.objects.all().order_by('-borrow_date')[:5]
-    return render(request, 'admin/dashboard.html', {'stats': stats, 'recommender_stats': recommender_stats, 'recent_loans': recent_loans})
+    return render(request, 'admin/dashboard.html', {
+        'stats': stats,
+        'damage_stats': damage_stats,
+        'recommender_stats': recommender_stats,
+        'recent_loans': recent_loans
+    })
 
 @login_required
 def dashboard_chart_data(request):

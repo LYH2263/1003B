@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block title %}损坏管理 - 龙猫图书{% endblock %}
+{% block page_title %}损坏管理中心{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
+        <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-slate-500">本月损坏</p>
+            <h4 class="text-2xl font-bold text-slate-900">{{ monthly_stats.monthly_count }}</h4>
+        </div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
+        <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl">
+            <i class="fas fa-yen-sign"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-slate-500">总赔偿金额</p>
+            <h4 class="text-2xl font-bold text-slate-900">¥{{ monthly_stats.total_compensation|floatformat:2 }}</h4>
+        </div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
+        <div class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-2xl">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-slate-500">待评估</p>
+            <h4 class="text-2xl font-bold text-slate-900">{{ monthly_stats.pending_count }}</h4>
+        </div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
+        <div class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl">
+            <i class="fas fa-hand-holding-usd"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-slate-500">待赔偿</p>
+            <h4 class="text-2xl font-bold text-slate-900">{{ monthly_stats.pending_compensation }}</h4>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="p-6 border-b border-slate-100">
+        <form method="get" class="flex flex-wrap gap-4 items-center">
+            <div class="relative">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" name="user" value="{{ request.GET.user|default:'' }}" placeholder="搜索用户名..." class="pl-11 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm w-48">
+            </div>
+            
+            <div class="relative">
+                <i class="fas fa-filter absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <select name="status" class="pl-11 pr-8 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm appearance-none bg-white">
+                    <option value="">所有状态</option>
+                    <option value="pending_assessment" {% if request.GET.status == 'pending_assessment' %}selected{% endif %}>待评估</option>
+                    <option value="pending_compensation" {% if request.GET.status == 'pending_compensation' %}selected{% endif %}>待赔偿</option>
+                    <option value="compensated" {% if request.GET.status == 'compensated' %}selected{% endif %}>已赔偿</option>
+                    <option value="waived" {% if request.GET.status == 'waived' %}selected{% endif %}>已免除</option>
+                </select>
+            </div>
+            
+            <div class="relative">
+                <i class="fas fa-layer-group absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <select name="level" class="pl-11 pr-8 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm appearance-none bg-white">
+                    <option value="">所有等级</option>
+                    <option value="minor" {% if request.GET.level == 'minor' %}selected{% endif %}>轻微</option>
+                    <option value="moderate" {% if request.GET.level == 'moderate' %}selected{% endif %}>中度</option>
+                    <option value="severe" {% if request.GET.level == 'severe' %}selected{% endif %}>严重</option>
+                    <option value="lost" {% if request.GET.level == 'lost' %}selected{% endif %}>遗失</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="px-6 py-2 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-100 transition-colors text-sm">
+                筛选
+            </button>
+            
+            {% if request.GET.user or request.GET.status or request.GET.level %}
+            <a href="{% url 'damages:damage_manage' %}" class="px-4 py-2 text-slate-400 hover:text-slate-600 transition-colors text-sm">
+                清除
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50/50 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">报告编号</th>
+                    <th class="px-6 py-4">借阅人</th>
+                    <th class="px-6 py-4">图书信息</th>
+                    <th class="px-6 py-4">损坏等级</th>
+                    <th class="px-6 py-4">赔偿金额</th>
+                    <th class="px-6 py-4">状态</th>
+                    <th class="px-6 py-4">创建时间</th>
+                    <th class="px-6 py-4 text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for damage in damages %}
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    <td class="px-6 py-4 font-mono text-xs text-slate-500">#{{ damage.id }}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                                {{ damage.user.username|first|upper }}
+                            </div>
+                            <span class="font-bold text-slate-700 text-sm">{{ damage.user.username }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-sm font-bold text-slate-800">{{ damage.book.title }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-[10px] font-bold rounded-md w-fit
+                        {% if damage.damage_level == 'minor' %}bg-emerald-50 text-emerald-600
+                        {% elif damage.damage_level == 'moderate' %}bg-amber-50 text-amber-600
+                        {% elif damage.damage_level == 'severe' %}bg-orange-50 text-orange-600
+                        {% else %}bg-rose-50 text-rose-600{% endif %}">
+                        {{ damage.get_damage_level_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if damage.compensation_amount %}
+                        <span class="text-sm font-bold text-slate-800">¥{{ damage.compensation_amount|floatformat:2 }}</span>
+                        {% else %}
+                        <span class="text-xs text-slate-400">待评估</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-[10px] font-bold rounded-md w-fit
+                        {% if damage.status == 'pending_assessment' %}bg-orange-50 text-orange-600
+                        {% elif damage.status == 'pending_compensation' %}bg-amber-50 text-amber-600
+                        {% elif damage.status == 'compensated' %}bg-emerald-50 text-emerald-600
+                        {% else %}bg-slate-50 text-slate-500{% endif %}">
+                        {{ damage.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-xs text-slate-500">
+                        {{ damage.created_at|date:"Y-m-d H:i" }}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <a href="{% url 'damages:damage_detail' damage.id %}" class="p-1 px-3 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                            查看详情
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-6 py-10 text-center text-slate-400 text-sm">暂无损坏报告</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if damages.has_other_pages %}
+    <div class="p-6 border-t border-slate-100 flex items-center justify-between bg-slate-50/30">
+        <p class="text-xs text-slate-500">此页显示 {{ damages.start_index }}-{{ damages.end_index }} 项，共 {{ damages.paginator.count }} 项</p>
+        <div class="flex space-x-2">
+            {% if damages.has_previous %}
+                <a href="?page={{ damages.previous_page_number }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.level %}&level={{ request.GET.level }}{% endif %}" class="p-2 w-10 h-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-500 hover:border-primary hover:text-primary transition-colors">
+                    <i class="fas fa-chevron-left text-xs"></i>
+                </a>
+            {% else %}
+                <span class="p-2 w-10 h-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-300 cursor-not-allowed">
+                    <i class="fas fa-chevron-left text-xs"></i>
+                </span>
+            {% endif %}
+
+            <span class="p-2 h-10 px-4 bg-primary text-white rounded-lg flex items-center justify-center text-xs font-bold shadow-md shadow-indigo-100">
+                {{ damages.number }} / {{ damages.paginator.num_pages }}
+            </span>
+
+            {% if damages.has_next %}
+                <a href="?page={{ damages.next_page_number }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.level %}&level={{ request.GET.level }}{% endif %}" class="p-2 w-10 h-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-500 hover:border-primary hover:text-primary transition-colors">
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </a>
+            {% else %}
+                <span class="p-2 w-10 h-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-300 cursor-not-allowed">
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% block title %}报告损坏 - 龙猫图书{% endblock %}
+{% block page_title %}图书损坏登记{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-lg font-bold text-slate-800">借阅信息</h3>
+        </div>
+        <div class="p-6">
+            <div class="flex items-center gap-6">
+                <div class="w-24 shrink-0 aspect-[3/4] rounded-xl overflow-hidden bg-slate-100">
+                    {% if loan.book.cover %}
+                    <img src="{{ loan.book.cover.url }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-slate-300">
+                        <i class="fas fa-book text-3xl"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-lg font-bold text-slate-800">{{ loan.book.title }}</h4>
+                    <p class="text-sm text-slate-500 mt-1">作者：{{ loan.book.author }}</p>
+                    <div class="flex items-center gap-4 mt-3 text-xs text-slate-500">
+                        <span><i class="fas fa-user mr-1"></i>{{ loan.user.username }}</span>
+                        <span><i class="fas fa-calendar mr-1"></i>借阅：{{ loan.borrow_date|date:"Y-m-d" }}</span>
+                        <span><i class="fas fa-clock mr-1"></i>应还：{{ loan.due_date|date:"Y-m-d" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mt-6">
+        <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-lg font-bold text-slate-800">损坏信息登记</h3>
+            <p class="text-xs text-slate-500 mt-1">请如实填写损坏情况并上传证据照片</p>
+        </div>
+        
+        <form method="post" enctype="multipart/form-data" class="p-6 space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-3">损坏等级 <span class="text-rose-500">*</span></label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="damage_level" value="minor" class="hidden peer" required>
+                        <div class="p-4 rounded-2xl border-2 border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition-all">
+                            <div class="text-2xl text-emerald-500 text-center mb-2">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <p class="text-sm font-bold text-center text-slate-700">轻微</p>
+                            <p class="text-xs text-center text-slate-400 mt-1">小范围磨损、折角</p>
+                        </div>
+                    </label>
+                    
+                    <label class="cursor-pointer">
+                        <input type="radio" name="damage_level" value="moderate" class="hidden peer">
+                        <div class="p-4 rounded-2xl border-2 border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-50 transition-all">
+                            <div class="text-2xl text-amber-500 text-center mb-2">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <p class="text-sm font-bold text-center text-slate-700">中度</p>
+                            <p class="text-xs text-center text-slate-400 mt-1">书页脱落、封面破损</p>
+                        </div>
+                    </label>
+                    
+                    <label class="cursor-pointer">
+                        <input type="radio" name="damage_level" value="severe" class="hidden peer">
+                        <div class="p-4 rounded-2xl border-2 border-slate-200 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition-all">
+                            <div class="text-2xl text-orange-500 text-center mb-2">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <p class="text-sm font-bold text-center text-slate-700">严重</p>
+                            <p class="text-xs text-center text-slate-400 mt-1">大面积损坏、水渍</p>
+                        </div>
+                    </label>
+                    
+                    <label class="cursor-pointer">
+                        <input type="radio" name="damage_level" value="lost" class="hidden peer">
+                        <div class="p-4 rounded-2xl border-2 border-slate-200 peer-checked:border-rose-500 peer-checked:bg-rose-50 transition-all">
+                            <div class="text-2xl text-rose-500 text-center mb-2">
+                                <i class="fas fa-book-dead"></i>
+                            </div>
+                            <p class="text-sm font-bold text-center text-slate-700">遗失</p>
+                            <p class="text-xs text-center text-slate-400 mt-1">图书丢失、无法找回</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-3">损坏描述</label>
+                <textarea name="description" rows="4" placeholder="请详细描述损坏情况..." class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm resize-none"></textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-3">证据照片 <span class="text-rose-500">*</span> <span class="text-xs font-normal text-slate-400">(1-5张，每张不超过10MB)</span></label>
+                <div class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-primary transition-colors" id="upload-area">
+                    <div class="text-slate-400 text-4xl mb-3">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <p class="text-sm text-slate-600 font-medium">点击或拖拽图片到此处上传</p>
+                    <p class="text-xs text-slate-400 mt-2">支持 JPG、PNG、GIF、WEBP 格式</p>
+                    <input type="file" name="images" id="image-input" accept="image/*" multiple class="hidden">
+                </div>
+                <div id="preview-container" class="grid grid-cols-5 gap-3 mt-4"></div>
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <a href="{% url 'loan_manage' %}" class="px-6 py-2.5 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-colors text-sm">
+                    取消
+                </a>
+                <button type="submit" class="px-6 py-2.5 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition-colors text-sm shadow-lg shadow-rose-200">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>提交损坏报告
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const uploadArea = document.getElementById('upload-area');
+    const imageInput = document.getElementById('image-input');
+    const previewContainer = document.getElementById('preview-container');
+    let selectedFiles = [];
+
+    uploadArea.addEventListener('click', () => imageInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('border-primary', 'bg-indigo-50');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('border-primary', 'bg-indigo-50');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('border-primary', 'bg-indigo-50');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    imageInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+
+    function handleFiles(files) {
+        const newFiles = Array.from(files);
+        const totalFiles = selectedFiles.length + newFiles.length;
+        
+        if (totalFiles > 5) {
+            alert('最多只能上传 5 张图片');
+            return;
+        }
+
+        newFiles.forEach(file => {
+            if (file.type.startsWith('image/')) {
+                selectedFiles.push(file);
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'relative aspect-square rounded-xl overflow-hidden bg-slate-100';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" class="w-full h-full object-cover">
+                        <button type="button" class="absolute top-1 right-1 w-6 h-6 bg-rose-500 text-white rounded-full text-xs hover:bg-rose-600 transition-colors" onclick="removeImage(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    div.dataset.index = selectedFiles.length - 1;
+                    previewContainer.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        updateFileInput();
+    }
+
+    function removeImage(btn) {
+        const div = btn.closest('div');
+        const index = parseInt(div.dataset.index);
+        selectedFiles.splice(index, 1);
+        div.remove();
+        
+        Array.from(previewContainer.children).forEach((child, i) => {
+            child.dataset.index = i;
+        });
+        
+        updateFileInput();
+    }
+
+    function updateFileInput() {
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        imageInput.files = dt.files;
+    }
+</script>
+{% endblock %}

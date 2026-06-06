@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'apps.donations.apps.DonationsConfig',
     'apps.recommender.apps.RecommenderConfig',
     'apps.knowledge_graph.apps.KnowledgeGraphConfig',
+    'apps.damages.apps.DamagesConfig',
 ]
 
 MIDDLEWARE = [

@@ -14,6 +14,7 @@ urlpatterns = [
     path('donations/', include('apps.donations.urls')),
     path('knowledge-graph/', include('apps.knowledge_graph.urls')),
     path('inventory/', include('apps.inventory.urls')),
+    path('damages/', include('apps.damages.urls', namespace='damages')),
 ]
 
 if settings.DEBUG:

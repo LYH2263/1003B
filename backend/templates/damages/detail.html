@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}损坏报告详情 - 龙猫图书{% endblock %}
+{% block page_title %}损坏报告详情{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="grid lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-slate-800">基本信息</h3>
+                    <span class="px-3 py-1 text-xs font-bold rounded-full
+                    {% if damage.status == 'pending_assessment' %}bg-orange-50 text-orange-600
+                    {% elif damage.status == 'pending_compensation' %}bg-amber-50 text-amber-600
+                    {% elif damage.status == 'compensated' %}bg-emerald-50 text-emerald-600
+                    {% else %}bg-slate-50 text-slate-500{% endif %}">
+                        {{ damage.get_status_display }}
+                    </span>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-start gap-6">
+                        <div class="w-24 shrink-0 aspect-[3/4] rounded-xl overflow-hidden bg-slate-100">
+                            {% if damage.book.cover %}
+                            <img src="{{ damage.book.cover.url }}" class="w-full h-full object-cover">
+                            {% else %}
+                            <div class="w-full h-full flex items-center justify-center text-slate-300">
+                                <i class="fas fa-book text-3xl"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-lg font-bold text-slate-800">{{ damage.book.title }}</h4>
+                            <p class="text-sm text-slate-500 mt-1">作者：{{ damage.book.author }}</p>
+                            <div class="flex items-center gap-4 mt-3 text-xs text-slate-500">
+                                <span><i class="fas fa-user mr-1"></i>{{ damage.user.username }}</span>
+                                <span><i class="fas fa-hashtag mr-1"></i>借阅记录 #{{ damage.loan.id }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-100">
+                        <div>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">损坏等级</p>
+                            <span class="inline-block mt-2 px-3 py-1 text-xs font-bold rounded-md
+                            {% if damage.damage_level == 'minor' %}bg-emerald-50 text-emerald-600
+                            {% elif damage.damage_level == 'moderate' %}bg-amber-50 text-amber-600
+                            {% elif damage.damage_level == 'severe' %}bg-orange-50 text-orange-600
+                            {% else %}bg-rose-50 text-rose-600{% endif %}">
+                                {{ damage.get_damage_level_display }}
+                            </span>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">赔偿金额</p>
+                            <p class="mt-2 text-lg font-bold text-slate-800">
+                                {% if damage.compensation_amount %}
+                                ¥{{ damage.compensation_amount|floatformat:2 }}
+                                {% else %}
+                                <span class="text-slate-400 text-sm">待评估</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">创建时间</p>
+                            <p class="mt-2 text-sm text-slate-600">{{ damage.created_at|date:"Y-m-d H:i" }}</p>
+                        </div>
+                        {% if damage.assessed_at %}
+                        <div>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">评估时间</p>
+                            <p class="mt-2 text-sm text-slate-600">{{ damage.assessed_at|date:"Y-m-d H:i" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if damage.processed_at %}
+                        <div>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">处理完成</p>
+                            <p class="mt-2 text-sm text-slate-600">{{ damage.processed_at|date:"Y-m-d H:i" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if damage.assessed_by %}
+                        <div>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">评估人</p>
+                            <p class="mt-2 text-sm text-slate-600">{{ damage.assessed_by.username }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="text-lg font-bold text-slate-800">损坏描述</h3>
+                </div>
+                <div class="p-6">
+                    {% if damage.description %}
+                    <p class="text-sm text-slate-600 leading-relaxed">{{ damage.description }}</p>
+                    {% else %}
+                    <p class="text-sm text-slate-400">暂无描述</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="text-lg font-bold text-slate-800">证据照片</h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {% for img in damage.images.all %}
+                        <div class="aspect-square rounded-xl overflow-hidden bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open('{{ img.image.url }}', '_blank')">
+                            <img src="{{ img.image.url }}" class="w-full h-full object-cover" alt="证据照片">
+                        </div>
+                        {% empty %}
+                        <p class="col-span-full text-sm text-slate-400">暂无照片</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            {% if user.role == 'admin' %}
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="text-lg font-bold text-slate-800">操作</h3>
+                </div>
+                <div class="p-6 space-y-3">
+                    {% if damage.status == 'pending_assessment' %}
+                    <form method="post" action="{% url 'damages:damage_assess' damage.id %}" id="assess-form">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold text-slate-700 mb-2">评估赔偿金额</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">¥</span>
+                                <input type="number" name="compensation_amount" step="0.01" min="0" placeholder="0.00" class="w-full pl-8 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm">
+                            <i class="fas fa-check-circle mr-2"></i>确认评估
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'damages:damage_waive' damage.id %}" onsubmit="return confirm('确定要免除赔偿吗？');">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors text-sm">
+                            <i class="fas fa-hand-holding-heart mr-2"></i>免除赔偿
+                        </button>
+                    </form>
+                    {% elif damage.status == 'pending_compensation' %}
+                    <div class="p-4 bg-amber-50 rounded-xl mb-4">
+                        <p class="text-sm font-bold text-amber-800">待读者赔偿</p>
+                        <p class="text-2xl font-bold text-amber-600 mt-2">¥{{ damage.compensation_amount|floatformat:2 }}</p>
+                    </div>
+                    <form method="post" action="{% url 'damages:damage_compensate' damage.id %}" onsubmit="return confirm('确认读者已完成赔偿？');">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors text-sm">
+                            <i class="fas fa-check-double mr-2"></i>确认赔偿完成
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'damages:damage_waive' damage.id %}" onsubmit="return confirm('确定要免除赔偿吗？');">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors text-sm">
+                            <i class="fas fa-hand-holding-heart mr-2"></i>免除赔偿
+                        </button>
+                    </form>
+                    {% elif damage.status == 'compensated' %}
+                    <div class="p-4 bg-emerald-50 rounded-xl text-center">
+                        <i class="fas fa-check-circle text-4xl text-emerald-500 mb-2"></i>
+                        <p class="text-sm font-bold text-emerald-800">已完成赔偿</p>
+                        <p class="text-lg font-bold text-emerald-600 mt-1">¥{{ damage.compensation_amount|floatformat:2 }}</p>
+                    </div>
+                    {% elif damage.status == 'waived' %}
+                    <div class="p-4 bg-slate-50 rounded-xl text-center">
+                        <i class="fas fa-hand-holding-heart text-4xl text-slate-400 mb-2"></i>
+                        <p class="text-sm font-bold text-slate-600">已免除赔偿</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bg-indigo-50 rounded-3xl p-6">
+                <h4 class="font-bold text-indigo-800 text-sm mb-3">
+                    <i class="fas fa-info-circle mr-2"></i>库存处理说明
+                </h4>
+                <ul class="text-xs text-indigo-600 space-y-2">
+                    <li><i class="fas fa-check-circle mr-1"></i>轻微/中度：修复后库存+1</li>
+                    <li><i class="fas fa-minus-circle mr-1"></i>严重/遗失：不恢复库存，总库存-1</li>
+                </ul>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="text-lg font-bold text-slate-800">赔偿状态</h3>
+                </div>
+                <div class="p-6">
+                    {% if damage.status == 'pending_assessment' %}
+                    <div class="text-center py-4">
+                        <div class="w-16 h-16 mx-auto bg-orange-100 rounded-full flex items-center justify-center text-orange-500 text-2xl mb-4">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <p class="font-bold text-slate-800">待管理员评估</p>
+                        <p class="text-sm text-slate-500 mt-2">请等待管理员评估损坏情况及赔偿金额</p>
+                    </div>
+                    {% elif damage.status == 'pending_compensation' %}
+                    <div class="text-center py-4">
+                        <div class="w-16 h-16 mx-auto bg-amber-100 rounded-full flex items-center justify-center text-amber-500 text-2xl mb-4">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <p class="font-bold text-slate-800">待赔偿</p>
+                        <p class="text-3xl font-bold text-amber-600 mt-3">¥{{ damage.compensation_amount|floatformat:2 }}</p>
+                        <p class="text-sm text-slate-500 mt-3">请到图书馆服务台办理赔偿手续</p>
+                    </div>
+                    {% elif damage.status == 'compensated' %}
+                    <div class="text-center py-4">
+                        <div class="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center text-emerald-500 text-2xl mb-4">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <p class="font-bold text-slate-800">赔偿已完成</p>
+                        <p class="text-sm text-slate-500 mt-2">感谢您的配合</p>
+                    </div>
+                    {% elif damage.status == 'waived' %}
+                    <div class="text-center py-4">
+                        <div class="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center text-slate-500 text-2xl mb-4">
+                            <i class="fas fa-hand-holding-heart"></i>
+                        </div>
+                        <p class="font-bold text-slate-800">赔偿已免除</p>
+                        <p class="text-sm text-slate-500 mt-2">管理员已免除您的赔偿责任</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if user.role == 'admin' %}
+            <a href="{% url 'damages:damage_manage' %}" class="block w-full py-3 text-center text-slate-500 font-bold text-sm hover:text-slate-700 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>返回损坏列表
+            </a>
+            {% else %}
+            <a href="{% url 'my_loans' %}" class="block w-full py-3 text-center text-slate-500 font-bold text-sm hover:text-slate-700 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>返回我的借阅
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

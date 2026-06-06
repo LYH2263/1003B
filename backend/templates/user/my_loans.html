@@ -21,6 +21,7 @@
                     <span class="px-2 py-1 text-[10px] font-bold rounded-md 
                         {% if loan.status == 'borrowed' %}bg-emerald-50 text-emerald-600
                         {% elif loan.status == 'pending' %}bg-orange-50 text-orange-600
+                        {% elif loan.status == 'damaged' %}bg-rose-50 text-rose-600
                         {% else %}bg-slate-50 text-slate-500{% endif %}">
                         {{ loan.get_status_display }}
                     </span>
@@ -47,6 +48,31 @@
                     </a>
                     {% endif %}
                 {% endif %}
+            </div>
+            {% elif loan.status == 'damaged' and loan.damage_report %}
+            <div class="mt-4 pt-4 border-t border-slate-50">
+                <div class="p-3 bg-rose-50 rounded-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-bold text-rose-600">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>图书损坏
+                        </span>
+                        {% if loan.damage_report.compensation_amount %}
+                        <span class="text-sm font-bold text-rose-600">¥{{ loan.damage_report.compensation_amount|floatformat:2 }}</span>
+                        {% else %}
+                        <span class="text-[10px] text-rose-400">待评估</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-[10px] text-rose-500 mb-2">
+                        {% if loan.damage_report.status == 'pending_assessment' %}
+                        正在评估损坏情况，请等待结果
+                        {% elif loan.damage_report.status == 'pending_compensation' %}
+                        请到服务台办理赔偿手续
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'damages:damage_detail' loan.damage_report.id %}" class="block w-full py-1.5 bg-rose-500 text-white text-[10px] font-bold rounded-lg hover:bg-rose-600 transition-colors text-center">
+                        查看详情
+                    </a>
+                </div>
             </div>
             {% endif %}
         </div>

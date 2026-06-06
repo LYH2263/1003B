@@ -20,6 +20,7 @@
                     <option value="borrowed" {% if request.GET.status == 'borrowed' %}selected{% endif %}>借阅中</option>
                     <option value="returned" {% if request.GET.status == 'returned' %}selected{% endif %}>已归还</option>
                     <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>已拒绝</option>
+                    <option value="damaged" {% if request.GET.status == 'damaged' %}selected{% endif %}>待赔偿</option>
                 </select>
             </div>
             
@@ -79,6 +80,7 @@
                             {% if loan.status == 'borrowed' %}bg-emerald-50 text-emerald-600
                             {% elif loan.status == 'pending' %}bg-orange-50 text-orange-600
                             {% elif loan.status == 'returned' %}bg-slate-50 text-slate-500
+                            {% elif loan.status == 'damaged' %}bg-rose-50 text-rose-600
                             {% else %}bg-red-50 text-red-500{% endif %}">
                             {{ loan.get_status_display }}
                             </span>
@@ -105,8 +107,13 @@
                             <form id="reject-{{ loan.id }}" action="{% url 'audit_loan' loan.id 'reject' %}" method="post" class="hidden">{% csrf_token %}</form>
                         </div>
                         {% elif loan.status == 'borrowed' %}
-                        <button onclick="document.getElementById('return-{{ loan.id }}').submit()" class="p-1 px-3 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity">确认归还</button>
+                        <div class="flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="document.getElementById('return-{{ loan.id }}').submit()" class="p-1 px-3 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100">确认归还</button>
+                            <a href="{% url 'damages:damage_report_create' loan.id %}" class="p-1 px-3 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-100">报告损坏</a>
+                        </div>
                         <form id="return-{{ loan.id }}" action="{% url 'audit_loan' loan.id 'return' %}" method="post" class="hidden">{% csrf_token %}</form>
+                        {% elif loan.status == 'damaged' %}
+                        <a href="{% url 'damages:damage_detail' loan.damage_report.id %}" class="p-1 px-3 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-100 opacity-0 group-hover:opacity-100 transition-opacity">查看损坏报告</a>
                         {% else %}
                         <span class="text-xs text-slate-300">-</span>
                         {% endif %}

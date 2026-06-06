@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- Stats Grid -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 mb-10">
     <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
         <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl">
             <i class="fas fa-book"></i>
@@ -52,6 +52,26 @@
         <div>
             <p class="text-sm font-medium text-slate-500">推荐覆盖</p>
             <h4 class="text-2xl font-bold text-slate-900">{{ recommender_stats.coverage|floatformat:1 }}%</h4>
+        </div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
+        <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-slate-500">本月损坏</p>
+            <h4 class="text-2xl font-bold text-slate-900">{{ damage_stats.monthly_count }}</h4>
+        </div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-4">
+        <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl">
+            <i class="fas fa-yen-sign"></i>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-slate-500">累计赔偿</p>
+            <h4 class="text-2xl font-bold text-slate-900">¥{{ damage_stats.total_compensation|floatformat:0 }}</h4>
         </div>
     </div>
 </div>
