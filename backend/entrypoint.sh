@@ -18,5 +18,5 @@ echo "Seeding data..."
 python seed_data.py
 
 # Start server
-echo "Starting Django server..."
-exec python manage.py runserver 0.0.0.0:8000
+echo "Starting Daphne ASGI server..."
+exec daphne -b 0.0.0.0 -p 8000 core.asgi:application
