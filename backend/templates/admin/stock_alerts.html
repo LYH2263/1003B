@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% block title %}库存预警 - 龙猫图书{% endblock %}
+{% block page_title %}库存智能预警{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="?status=pending" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500">未处理</p>
+                    <h4 class="text-2xl font-bold text-orange-600 mt-1">{{ stats.pending }}</h4>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-xl">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+            </div>
+        </a>
+        <a href="?status=resolved" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500">已处理</p>
+                    <h4 class="text-2xl font-bold text-emerald-600 mt-1">{{ stats.resolved }}</h4>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+            </div>
+        </a>
+        <a href="?status=ignored" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500">已忽略</p>
+                    <h4 class="text-2xl font-bold text-slate-500 mt-1">{{ stats.ignored }}</h4>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl">
+                    <i class="fas fa-eye-slash"></i>
+                </div>
+            </div>
+        </a>
+        <a href="?status=" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500">预警总数</p>
+                    <h4 class="text-2xl font-bold text-indigo-600 mt-1">{{ stats.total }}</h4>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl">
+                    <i class="fas fa-bell"></i>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap gap-2">
+            <a href="?status=pending{% if type_filter %}&type={{ type_filter }}{% endif %}" 
+               class="px-4 py-2 rounded-xl text-sm font-medium transition-colors
+               {% if status_filter == 'pending' %}bg-orange-100 text-orange-700{% else %}bg-slate-50 text-slate-600 hover:bg-slate-100{% endif %}">
+                未处理
+            </a>
+            <a href="?status=resolved{% if type_filter %}&type={{ type_filter }}{% endif %}" 
+               class="px-4 py-2 rounded-xl text-sm font-medium transition-colors
+               {% if status_filter == 'resolved' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-50 text-slate-600 hover:bg-slate-100{% endif %}">
+                已处理
+            </a>
+            <a href="?status=ignored{% if type_filter %}&type={{ type_filter }}{% endif %}" 
+               class="px-4 py-2 rounded-xl text-sm font-medium transition-colors
+               {% if status_filter == 'ignored' %}bg-slate-200 text-slate-700{% else %}bg-slate-50 text-slate-600 hover:bg-slate-100{% endif %}">
+                已忽略
+            </a>
+            <a href="?{% if type_filter %}type={{ type_filter }}{% endif %}" 
+               class="px-4 py-2 rounded-xl text-sm font-medium transition-colors
+               {% if not status_filter %}bg-indigo-100 text-indigo-700{% else %}bg-slate-50 text-slate-600 hover:bg-slate-100{% endif %}">
+                全部
+            </a>
+        </div>
+        <div class="flex items-center gap-3">
+            <select onchange="filterByType(this.value)" class="px-4 py-2 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="">全部类型</option>
+                <option value="low_stock" {% if type_filter == 'low_stock' %}selected{% endif %}>库存不足</option>
+                <option value="slow_moving" {% if type_filter == 'slow_moving' %}selected{% endif %}>长期滞销</option>
+                <option value="high_demand" {% if type_filter == 'high_demand' %}selected{% endif %}>高频借阅</option>
+            </select>
+            {% if status_filter == 'pending' or not status_filter %}
+            <a href="{% url 'inventory:export_purchase_csv' %}" 
+               class="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors flex items-center gap-2">
+                <i class="fas fa-download"></i>
+                导出采购建议
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Alert Cards Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {% for alert in alerts %}
+        <div class="bg-white rounded-2xl shadow-sm border overflow-hidden transition-all hover:shadow-md
+                    {% if alert.status == 'pending' %}
+                        {% if alert.alert_type == 'low_stock' %}border-l-4 border-l-orange-500
+                        {% elif alert.alert_type == 'slow_moving' %}border-l-4 border-l-slate-400
+                        {% elif alert.alert_type == 'high_demand' %}border-l-4 border-l-red-500
+                        {% endif %}
+                    {% else %}border-l-4 border-l-slate-200 opacity-75
+                    {% endif %}">
+            <div class="p-5">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex items-start gap-3 flex-1">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0
+                                    {% if alert.alert_type == 'low_stock' %}bg-orange-50 text-orange-500
+                                    {% elif alert.alert_type == 'slow_moving' %}bg-slate-100 text-slate-500
+                                    {% elif alert.alert_type == 'high_demand' %}bg-red-50 text-red-500
+                                    {% endif %}">
+                            {% if alert.alert_type == 'low_stock' %}
+                            <i class="fas fa-box-open"></i>
+                            {% elif alert.alert_type == 'slow_moving' %}
+                            <i class="fas fa-hourglass-half"></i>
+                            {% elif alert.alert_type == 'high_demand' %}
+                            <i class="fas fa-fire"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2 py-0.5 text-xs font-bold rounded-full
+                                            {% if alert.alert_type == 'low_stock' %}bg-orange-100 text-orange-700
+                                            {% elif alert.alert_type == 'slow_moving' %}bg-slate-100 text-slate-600
+                                            {% elif alert.alert_type == 'high_demand' %}bg-red-100 text-red-700
+                                            {% endif %}">
+                                    {{ alert.get_alert_type_display }}
+                                </span>
+                                <span class="px-2 py-0.5 text-xs rounded-full
+                                            {% if alert.status == 'pending' %}bg-amber-100 text-amber-700
+                                            {% elif alert.status == 'resolved' %}bg-emerald-100 text-emerald-700
+                                            {% else %}bg-slate-100 text-slate-500
+                                            {% endif %}">
+                                    {{ alert.get_status_display }}
+                                </span>
+                            </div>
+                            <h3 class="font-bold text-slate-800 mt-2 line-clamp-1">{{ alert.book.title }}</h3>
+                            <p class="text-sm text-slate-500 mt-0.5">{{ alert.book.author }} · 库存: {{ alert.book.stock }}/{{ alert.book.total_stock }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 bg-slate-50 rounded-xl">
+                    <p class="text-sm text-slate-600 leading-relaxed">{{ alert.description }}</p>
+                </div>
+
+                {% if alert.suggested_action %}
+                <div class="mt-3 flex items-start gap-2">
+                    <i class="fas fa-lightbulb text-amber-500 mt-0.5 text-sm"></i>
+                    <p class="text-sm text-slate-700">{{ alert.suggested_action }}</p>
+                </div>
+                {% endif %}
+
+                {% if alert.suggested_purchase_qty > 0 %}
+                <div class="mt-3 flex items-center gap-2">
+                    <span class="text-sm text-slate-500">建议采购:</span>
+                    <span class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-bold">
+                        {{ alert.suggested_purchase_qty }} 本
+                    </span>
+                </div>
+                {% endif %}
+
+                <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-xs text-slate-400">
+                        <i class="far fa-clock mr-1"></i>
+                        {{ alert.created_at|date:"Y-m-d H:i" }}
+                    </span>
+                    {% if alert.status == 'pending' %}
+                    <div class="flex gap-2">
+                        <a href="{% url 'inventory:stock_alert_ignore' alert.pk %}" 
+                           class="px-3 py-1.5 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                            忽略
+                        </a>
+                        <a href="{% url 'inventory:stock_alert_resolve' alert.pk %}" 
+                           class="px-3 py-1.5 text-sm bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
+                            标记已处理
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full bg-white rounded-2xl shadow-sm border border-slate-100 p-16 text-center">
+            <div class="w-20 h-20 mx-auto rounded-full bg-slate-50 text-slate-300 flex items-center justify-center text-4xl mb-4">
+                <i class="fas fa-check-double"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-700">暂无预警</h3>
+            <p class="text-sm text-slate-400 mt-2">当前筛选条件下没有预警记录</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if alerts.has_other_pages %}
+    <div class="flex items-center justify-center gap-2 pt-4">
+        {% if alerts.has_previous %}
+        <a href="?page={{ alerts.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}" 
+           class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+
+        {% for num in alerts.paginator.page_range %}
+        {% if alerts.number == num %}
+        <span class="px-4 py-2 rounded-xl bg-indigo-500 text-white font-medium">{{ num }}</span>
+        {% elif num > alerts.number|add:'-3' and num < alerts.number|add:'3' %}
+        <a href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}" 
+           class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            {{ num }}
+        </a>
+        {% endif %}
+        {% endfor %}
+
+        {% if alerts.has_next %}
+        <a href="?page={{ alerts.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}" 
+           class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterByType(type) {
+    const params = new URLSearchParams(window.location.search);
+    if (type) {
+        params.set('type', type);
+    } else {
+        params.delete('type');
+    }
+    params.delete('page');
+    window.location.search = params.toString();
+}
+</script>
+{% endblock %}

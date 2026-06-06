@@ -13,6 +13,7 @@ urlpatterns = [
     path('seats/', include('apps.seats.urls')),
     path('donations/', include('apps.donations.urls')),
     path('knowledge-graph/', include('apps.knowledge_graph.urls')),
+    path('inventory/', include('apps.inventory.urls')),
 ]
 
 if settings.DEBUG:
