@@ -220,6 +220,11 @@
             </div>
 
             <div class="pt-6 flex flex-col sm:flex-row gap-4">
+                {% if book.preview_file %}
+                    <a href="{% url 'book_read' book.pk %}" class="flex-1 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-center font-bold rounded-2xl hover:from-amber-600 hover:to-orange-600 shadow-xl shadow-orange-100 transition-all hover:scale-[1.02] active:scale-95">
+                        <i class="fas fa-book-open mr-2"></i> 在线试读
+                    </a>
+                {% endif %}
                 {% if book.stock > 0 %}
                     <a href="{% url 'borrow_request' book.pk %}" class="flex-1 py-4 bg-indigo-600 text-white text-center font-bold rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-95">
                         <i class="fas fa-hand-holding-heart mr-2"></i> 立即申请借阅

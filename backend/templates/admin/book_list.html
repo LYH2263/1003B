@@ -54,11 +54,23 @@
                             <div class="h-full bg-primary" style="width: {% widthratio book.stock book.total_stock 100 %}%"></div>
                         </div>
                     </td>
-                    <td class="px-6 py-4 text-center space-x-2">
-                        <button onclick="openBookModal('{{ book.pk }}', '{{ book.title }}', '{{ book.author }}', '{{ book.isbn|default:'' }}', '{{ book.category.id|default:'' }}', '{{ book.total_stock }}', `{{ book.description|escapejs }}`)" class="p-2 text-slate-400 hover:text-primary transition-colors">
+                    <td class="px-6 py-4 text-center space-x-1">
+                        <button onclick="openBookModal('{{ book.pk }}', '{{ book.title }}', '{{ book.author }}', '{{ book.isbn|default:'' }}', '{{ book.category.id|default:'' }}', '{{ book.total_stock }}', `{{ book.description|escapejs }}`, {% if book.preview_file %}true{% else %}false{% endif %}, '{{ book.preview_file.name|default:'' }}')" class="p-2 text-slate-400 hover:text-primary transition-colors" title="编辑">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button onclick="uiConfirm('确认删除', '您确定要从库中移除《{{ book.title }}》吗？此操作不可撤销。', ()=>document.getElementById('delete-form-{{ book.pk }}').submit())" class="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                        {% if book.preview_file %}
+                        <button onclick="uiConfirm('删除试读文件', '您确定要删除《{{ book.title }}》的试读文件吗？', ()=>document.getElementById('preview-delete-form-{{ book.pk }}').submit())" class="p-2 text-slate-400 hover:text-orange-500 transition-colors" title="删除试读文件">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
+                        <form id="preview-delete-form-{{ book.pk }}" action="{% url 'preview_delete' book.pk %}" method="post" style="display:none;">
+                            {% csrf_token %}
+                        </form>
+                        {% else %}
+                        <span class="p-2 text-slate-300 cursor-not-allowed" title="暂无试读文件">
+                            <i class="fas fa-file-pdf"></i>
+                        </span>
+                        {% endif %}
+                        <button onclick="uiConfirm('确认删除', '您确定要从库中移除《{{ book.title }}》吗？此操作不可撤销。', ()=>document.getElementById('delete-form-{{ book.pk }}').submit())" class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="删除图书">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                         <form id="delete-form-{{ book.pk }}" action="{% url 'book_delete' book.pk %}" method="post" style="display:none;">
@@ -147,6 +159,18 @@
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-2">封面图片</label>
                     <input type="file" name="cover" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                 </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">上传试读章节 (PDF)</label>
+                    <input type="file" name="preview_file" accept=".pdf" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    <p class="text-xs text-slate-400 mt-2">支持 PDF 格式，文件大小不超过 20MB</p>
+                    <div id="previewFileInfo" class="hidden mt-2 p-3 bg-slate-50 rounded-xl flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-file-pdf text-red-500 mr-2"></i>
+                            <span id="previewFileName" class="text-sm text-slate-600"></span>
+                        </div>
+                        <button type="button" id="removePreviewBtn" class="text-xs text-red-500 hover:text-red-700">移除</button>
+                    </div>
+                </div>
             </div>
             
             <div class="flex justify-end space-x-4">
@@ -158,11 +182,13 @@
 </div>
 
 <script>
-    function openBookModal(pk, title, author, isbn, categoryId, totalStock, description) {
+    function openBookModal(pk, title, author, isbn, categoryId, totalStock, description, hasPreview, previewFileName) {
         const modal = document.getElementById('bookModal');
         const modalContent = document.getElementById('bookModalContent');
         const form = document.getElementById('bookForm');
         const modalTitle = document.getElementById('modalTitle');
+        const previewFileInfo = document.getElementById('previewFileInfo');
+        const previewFileNameEl = document.getElementById('previewFileName');
         
         if (pk) {
             // Edit Mode
@@ -174,11 +200,20 @@
             document.getElementById('bookCategory').value = categoryId;
             document.getElementById('bookTotalStock').value = totalStock;
             document.getElementById('bookDescription').value = description;
+            
+            if (hasPreview && previewFileName) {
+                const nameParts = previewFileName.split('/');
+                previewFileNameEl.textContent = nameParts[nameParts.length - 1];
+                previewFileInfo.classList.remove('hidden');
+            } else {
+                previewFileInfo.classList.add('hidden');
+            }
         } else {
             // Create Mode
             modalTitle.innerText = "上架新书";
             form.action = "{% url 'book_create' %}";
             form.reset();
+            previewFileInfo.classList.add('hidden');
         }
         
         modal.classList.remove('hidden');
@@ -201,5 +236,14 @@
             modal.classList.add('hidden');
         }, 300);
     }
+
+    document.getElementById('removePreviewBtn')?.addEventListener('click', function() {
+        const previewFileInput = document.querySelector('input[name="preview_file"]');
+        const previewFileInfo = document.getElementById('previewFileInfo');
+        if (previewFileInput) {
+            previewFileInput.value = '';
+        }
+        previewFileInfo.classList.add('hidden');
+    });
 </script>
 {% endblock %}

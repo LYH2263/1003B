@@ -4,9 +4,11 @@ from apps.users.models import User
 
 
 def validate_pdf_file(value):
-    """验证上传文件为PDF格式"""
+    """验证上传文件为PDF格式且大小不超过20MB"""
     if not value.name.lower().endswith('.pdf'):
         raise ValidationError('只允许上传 PDF 文件。')
+    if value.size > 20 * 1024 * 1024:
+        raise ValidationError('文件大小不能超过 20MB。')
 
 class Category(models.Model):
     name = models.CharField(max_length=50, verbose_name="分类名称")

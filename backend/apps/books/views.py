@@ -4,7 +4,9 @@ from django.contrib import messages
 from django.db.models import Count, Q
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from .models import Book, LoanRecord, Announcement, Category, SiteConfig
+from django.core.files.storage import default_storage
+from django.core.exceptions import ValidationError
+from .models import Book, LoanRecord, Announcement, Category, SiteConfig, validate_pdf_file
 from apps.users.models import User
 from apps.recommendations.models import Recommendation
 from apps.notifications.services import send_notification
@@ -97,14 +99,22 @@ def book_create(request):
         description = request.POST.get('description')
         total_stock = int(request.POST.get('total_stock', 0))
         cover = request.FILES.get('cover')
+        preview_file = request.FILES.get('preview_file')
 
         isbn_value = isbn if isbn else None
 
         if isbn_value and Book.objects.filter(isbn=isbn_value).exists():
             messages.error(request, "ISBN 已存在，请检查输入。")
         else:
+            if preview_file:
+                try:
+                    validate_pdf_file(preview_file)
+                except ValidationError as e:
+                    messages.error(request, str(e))
+                    return redirect('book_manage')
+
             category = Category.objects.get(pk=category_id) if category_id else None
-            Book.objects.create(
+            book = Book.objects.create(
                 title=title,
                 author=author,
                 isbn=isbn_value,
@@ -112,7 +122,8 @@ def book_create(request):
                 description=description,
                 stock=total_stock,
                 total_stock=total_stock,
-                cover=cover
+                cover=cover,
+                preview_file=preview_file
             )
             messages.success(request, f"图书《{title}》已成功上架。")
     
@@ -148,6 +159,17 @@ def book_edit(request, pk):
         if request.FILES.get('cover'):
             book.cover = request.FILES.get('cover')
 
+        if request.FILES.get('preview_file'):
+            new_preview = request.FILES.get('preview_file')
+            try:
+                validate_pdf_file(new_preview)
+            except ValidationError as e:
+                messages.error(request, str(e))
+                return redirect('book_manage')
+            if book.preview_file:
+                default_storage.delete(book.preview_file.name)
+            book.preview_file = new_preview
+
         book.save()
         messages.success(request, f"图书《{book.title}》信息已更新。")
         
@@ -160,6 +182,20 @@ def book_delete(request, pk):
     book = get_object_or_404(Book, pk=pk)
     book.delete()
     messages.success(request, f"图书《{book.title}》已成功删除。")
+    return redirect('book_manage')
+
+@login_required
+def preview_delete(request, pk):
+    if request.user.role != 'admin':
+        return redirect('home')
+    book = get_object_or_404(Book, pk=pk)
+    if book.preview_file:
+        default_storage.delete(book.preview_file.name)
+        book.preview_file = None
+        book.save()
+        messages.success(request, f"《{book.title}》的试读文件已删除。")
+    else:
+        messages.warning(request, "该书没有试读文件。")
     return redirect('book_manage')
 
 # ... (Keep existing loan_manage, book_browse, book_detail, borrow_request, my_loans, user_manage, audit_loan, system_settings, etc.)
@@ -203,6 +239,14 @@ def book_browse(request):
 def book_detail(request, pk):
     book = get_object_or_404(Book, pk=pk)
     return render(request, 'books/detail.html', {'book': book})
+
+@login_required
+def book_read(request, pk):
+    book = get_object_or_404(Book, pk=pk)
+    if not book.preview_file:
+        messages.error(request, "该书暂无试读章节。")
+        return redirect('book_detail', pk=pk)
+    return render(request, 'books/read.html', {'book': book})
 
 @login_required
 def borrow_request(request, pk):
