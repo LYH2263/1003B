@@ -213,10 +213,17 @@ def api_create_reservation(request):
             reservation_date=reservation_date,
             time_slot=time_slot
         )
+        time_slot_display = reservation.get_time_slot_display()
+        message = f'预约成功！座位：{seat.seat_number}，日期：{reservation_date}，时间段：{time_slot_display}'
         return JsonResponse({
             'success': True,
-            'message': '预约成功！',
-            'reservation_id': reservation.id
+            'message': message,
+            'reservation_id': reservation.id,
+            'seat_number': seat.seat_number,
+            'reservation_date': reservation_date,
+            'time_slot': time_slot,
+            'time_slot_display': time_slot_display,
+            'reading_room': seat.reading_room.name
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)

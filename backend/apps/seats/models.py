@@ -73,13 +73,13 @@ class SeatReservation(models.Model):
         verbose_name = "座位预约"
         verbose_name_plural = verbose_name
         ordering = ['-reservation_date', '-created_at']
-        unique_together = ['user', 'reservation_date', 'time_slot']
 
     def clean(self):
         if SeatReservation.objects.filter(
             user=self.user,
             reservation_date=self.reservation_date,
-            time_slot=self.time_slot
+            time_slot=self.time_slot,
+            status__in=['pending', 'checked_in']
         ).exclude(pk=self.pk).exists():
             raise ValidationError("同一用户同一天同一时间段只能预约一个座位")
 
