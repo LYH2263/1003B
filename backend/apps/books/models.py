@@ -1,5 +1,12 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from apps.users.models import User
+
+
+def validate_pdf_file(value):
+    """验证上传文件为PDF格式"""
+    if not value.name.lower().endswith('.pdf'):
+        raise ValidationError('只允许上传 PDF 文件。')
 
 class Category(models.Model):
     name = models.CharField(max_length=50, verbose_name="分类名称")
@@ -18,6 +25,7 @@ class Book(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, verbose_name="分类")
     description = models.TextField(blank=True, verbose_name="简介")
     cover = models.ImageField(upload_to='book_covers/', blank=True, null=True, verbose_name="封面")
+    preview_file = models.FileField(upload_to='book_previews/', blank=True, null=True, validators=[validate_pdf_file], verbose_name="试读章节 (PDF)")
     stock = models.PositiveIntegerField(default=0, verbose_name="当前库存")
     total_stock = models.PositiveIntegerField(default=0, verbose_name="总库存")
     created_at = models.DateTimeField(auto_now_add=True)
